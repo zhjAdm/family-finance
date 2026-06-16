@@ -1,13 +1,8 @@
-FROM node:20-alpine
+FROM node:20-slim
 
-# Alpine 使用 apk，不是 apt-get
-# netcat-openbsd 提供 nc
-# openssl / libc6-compat 是给 Prisma engine 用的
-RUN apk add --no-cache \
-    netcat-openbsd \
-    openssl \
-    openssl-dev \
-    libc6-compat
+RUN apt-get update \
+    && apt-get install -y netcat-openbsd openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
