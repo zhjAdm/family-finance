@@ -10,13 +10,17 @@ datasource db {
 
 model FinanceYearGoal {
   id           BigInt   @id @default(autoincrement())
-  year         Int      @unique
+  year         Int
+  ownerId      BigInt   @map("owner_id")
   targetAmount Decimal  @map("target_amount") @db.Decimal(18, 2)
   startAmount  Decimal  @default(0) @map("start_amount") @db.Decimal(18, 2)
   remark       String?  @db.VarChar(255)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  owner        FinanceOwner @relation(fields: [ownerId], references: [id])
+
+  @@unique([year, ownerId])
   @@map("finance_year_goal")
 }
 
@@ -32,6 +36,7 @@ model FinanceOwner {
 
   accounts    FinanceAccount[]
   snapshots   FinanceAssetSnapshot[]
+  yearGoals   FinanceYearGoal[]
 
   @@map("finance_owner")
 }

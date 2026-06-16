@@ -3,7 +3,11 @@
     <div class="settings-card glass-card">
       <div class="card-header">
         <h2>资产类型配置</h2>
-        <el-button type="primary" @click="openDialog()">新增</el-button>
+        <div class="header-actions">
+          <el-button @click="triggerImport" :loading="importing">导入</el-button>
+          <el-button type="primary" @click="openDialog()">新增</el-button>
+        </div>
+        <input ref="fileInput" type="file" accept=".csv" style="display:none" @change="handleFileChange" />
       </div>
 
       <div v-loading="loading" class="item-list">
@@ -93,7 +97,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getAssetTypes, createAssetType, updateAssetType, deleteAssetType, enableAssetType, disableAssetType } from '../../api'
+import { getAssetTypes, createAssetType, updateAssetType, deleteAssetType, enableAssetType, disableAssetType, importAssetTypes } from '../../api'
 
 const list = ref([])
 const loading = ref(false)
@@ -109,6 +113,79 @@ const rules = {
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
   code: [{ required: true, message: '请输入编码', trigger: 'blur' }],
   direction: [{ required: true, message: '请选择方向', trigger: 'change' }],
+}
+
+const fileInput = ref(null)
+const importing = ref(false)
+
+const directionMap = { '资产': 'ASSET', '负债': 'DEBT', 'ASSET': 'ASSET', 'DEBT': 'DEBT' }
+const riskLevelMap = { '无': 'NONE', '低': 'LOW', '中': 'MEDIUM', '高': 'HIGH', 'NONE': 'NONE', 'LOW': 'LOW', 'MEDIUM': 'MEDIUM', 'HIGH': 'HIGH' }
+const boolMap = { '是': true, 'true': true, '1': true, '否': false, 'false': false, '0': false }
+
+function parseCsv(text) {
+  const lines = text.split(/\r?\n/).filter(line => line.trim())
+  if (lines.length < 2) return []
+  // skip header
+  return lines.slice(1).map(line => {
+    const cols = []
+    let current = ''
+    let inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') { current += '"'; i++ }
+        else if (ch === '"') { inQuotes = false }
+        else { current += ch }
+      } else {
+        if (ch === '"') { inQuotes = true }
+        else if (ch === ',') { cols.push(current); current = '' }
+        else { current += ch }
+      }
+    }
+    cols.push(current)
+    return cols
+  })
+}
+
+function triggerImport() {
+  fileInput.value.value = ''
+  fileInput.value.click()
+}
+
+async function handleFileChange(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  importing.value = true
+  try {
+    const text = await file.text()
+    const rows = parseCsv(text)
+    if (rows.length === 0) {
+      ElMessage.warning('CSV 文件无有效数据行')
+      return
+    }
+    // 名称,编码,方向,风险等级,计入总资产,图表显示,启用,排序,备注
+    const items = rows.map(cols => ({
+      name: (cols[0] || '').trim(),
+      code: (cols[1] || '').trim(),
+      direction: directionMap[(cols[2] || '').trim()] || 'ASSET',
+      riskLevel: riskLevelMap[(cols[3] || '').trim()] || 'NONE',
+      includeInTotal: boolMap[(cols[4] || '是').trim()] !== false,
+      includeInChart: boolMap[(cols[5] || '是').trim()] !== false,
+      sort: parseInt(cols[7]) || 0,
+      remark: (cols[8] || '').trim() || null,
+    }))
+    const res = await importAssetTypes(items)
+    const { created, updated, skipped, errors } = res.data
+    ElMessage.success(res.message || `导入完成：新增 ${created}，更新 ${updated}，跳过 ${skipped}`)
+    if (errors && errors.length > 0) {
+      console.warn('导入警告:', errors)
+    }
+    await fetchList()
+  } catch (err) {
+    // error already handled by interceptor
+  } finally {
+    importing.value = false
+  }
 }
 
 const riskMap = { NONE: '无', LOW: '低', MEDIUM: '中', HIGH: '高' }
@@ -225,6 +302,10 @@ onMounted(() => {
   font-size: 18px;
   font-weight: 600;
   color: #1D2129;
+}
+.header-actions {
+  display: flex;
+  gap: 8px;
 }
 
 /* 卡片列表 */

@@ -24,7 +24,7 @@ request.interceptors.response.use(
 )
 
 // 年度目标
-export const getYearGoals = () => request.get('/year-goals')
+export const getYearGoals = (ownerId) => request.get('/year-goals', { params: { ownerId } })
 export const createYearGoal = (data) => request.post('/year-goals', data)
 export const updateYearGoal = (id, data) => request.put(`/year-goals/${id}`, data)
 export const deleteYearGoal = (id) => request.delete(`/year-goals/${id}`)
@@ -44,6 +44,7 @@ export const updateAssetType = (id, data) => request.put(`/asset-types/${id}`, d
 export const deleteAssetType = (id) => request.delete(`/asset-types/${id}`)
 export const enableAssetType = (id) => request.patch(`/asset-types/${id}/enable`)
 export const disableAssetType = (id) => request.patch(`/asset-types/${id}/disable`)
+export const importAssetTypes = (items) => request.post('/asset-types/import', items)
 
 // 账户
 export const getAccounts = (params) => request.get('/accounts', { params })
@@ -68,7 +69,8 @@ export const getAccountOptions = (ownerId) => request.get('/options/accounts', {
 export const getAssetTypeOptions = () => request.get('/options/asset-types')
 
 // 看板
-export const getDashboard = (year) => request.get('/dashboard', { params: { year } })
+export const getDashboard = (year, ownerId) => request.get('/dashboard', { params: { year, ownerId } })
+export const getDistributions = (ownerId) => request.get('/dashboard/distributions', { params: { ownerId } })
 
 // 导出
 export const exportSnapshotsCsv = () => '/api/export/snapshots.csv'

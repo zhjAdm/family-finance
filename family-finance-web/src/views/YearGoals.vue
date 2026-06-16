@@ -2,14 +2,19 @@
   <div class="year-goals">
     <div class="page-header">
       <h2>年度目标</h2>
-      <el-button type="primary" @click="openDialog()">新增目标</el-button>
+      <div class="header-actions">
+        <el-select v-model="selectedOwner" placeholder="全部所有人" clearable style="width: 160px" @change="fetchList">
+          <el-option v-for="o in ownerOptions" :key="o.id" :label="o.displayName || o.name" :value="o.id" />
+        </el-select>
+        <el-button type="primary" @click="openDialog()">新增目标</el-button>
+      </div>
     </div>
 
     <!-- 进度概览卡片 -->
     <div class="goal-progress-card glass-card glass-card--hero-green" v-if="activeGoal">
       <div class="goal-progress-top">
         <div class="goal-progress-left">
-          <div class="goal-year-badge">{{ activeGoal.year }}</div>
+          <div class="goal-year-badge">{{ activeGoal.year }}{{ activeGoal.ownerName ? ' · ' + activeGoal.ownerName : '' }}</div>
           <div class="goal-target-label">年度目标</div>
           <div class="goal-target-value">{{ formatMoney(activeGoal.targetAmount) }}</div>
         </div>
@@ -54,7 +59,7 @@
     <div class="goal-cards" v-if="list.length > 0">
       <div v-for="item in list" :key="item.id" class="goal-card glass-card">
         <div class="goal-card-header">
-          <div class="goal-card-year">{{ item.year }}年目标</div>
+          <div class="goal-card-year">{{ item.year }}年目标<span v-if="item.owner" class="goal-card-owner"> · {{ item.owner.displayName || item.owner.name }}</span></div>
           <div class="goal-card-actions">
             <el-button link type="primary" @click="openDialog(item)">编辑</el-button>
             <el-popconfirm title="确定删除？" confirm-button-text="确定" cancel-button-text="取消" @confirm="handleDelete(item.id)">
@@ -96,6 +101,11 @@
         <el-form-item label="年份" prop="year">
           <el-input-number v-model="form.year" :min="2020" :max="2099" controls-position="right" style="width: 100%" />
         </el-form-item>
+        <el-form-item label="所有人" prop="ownerId">
+          <el-select v-model="form.ownerId" placeholder="请选择所有人" style="width: 100%">
+            <el-option v-for="o in ownerOptions" :key="o.id" :label="o.displayName || o.name" :value="o.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="年初资产" prop="startAmount">
           <el-input-number v-model="form.startAmount" :min="0" :precision="2" controls-position="right" style="width: 100%" />
         </el-form-item>
@@ -117,7 +127,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getYearGoals, createYearGoal, updateYearGoal, deleteYearGoal } from '../api'
+import { getYearGoals, createYearGoal, updateYearGoal, deleteYearGoal, getOwnerOptions } from '../api'
 
 const list = ref([])
 const loading = ref(false)
@@ -125,11 +135,15 @@ const dialogVisible = ref(false)
 const submitting = ref(false)
 const isEdit = ref(false)
 const formRef = ref(null)
-const form = ref({ year: null, targetAmount: null, startAmount: 0, remark: '' })
+const form = ref({ year: null, ownerId: '', targetAmount: null, startAmount: 0, remark: '' })
 const rules = {
   year: [{ required: true, message: '请输入年份', trigger: 'blur' }],
+  ownerId: [{ required: true, message: '请选择所有人', trigger: 'change' }],
   targetAmount: [{ required: true, message: '请输入目标金额', trigger: 'blur' }],
 }
+
+const selectedOwner = ref('')
+const ownerOptions = ref([])
 
 // 当前激活目标（取当前年份或最近年份）
 const activeGoal = computed(() => {
@@ -137,11 +151,11 @@ const activeGoal = computed(() => {
   const currentYear = new Date().getFullYear()
   const current = list.value.find(g => g.year === currentYear)
   if (current) {
-    const start = Number(current.startAmount) || 0
     const target = Number(current.targetAmount) || 1
     const currentAmount = 0 // 由 dashboard 提供，此处为静态
     return {
       year: currentYear,
+      ownerName: current.owner?.displayName || current.owner?.name || '',
       targetAmount: current.targetAmount,
       startAmount: current.startAmount,
       currentAmount: currentAmount,
@@ -153,6 +167,7 @@ const activeGoal = computed(() => {
   const target = Number(latest.targetAmount) || 1
   return {
     year: latest.year,
+    ownerName: latest.owner?.displayName || latest.owner?.name || '',
     targetAmount: latest.targetAmount,
     startAmount: latest.startAmount,
     currentAmount: 0,
@@ -175,10 +190,19 @@ function formatMoney(val) {
 async function fetchList() {
   loading.value = true
   try {
-    const res = await getYearGoals()
+    const res = await getYearGoals(selectedOwner.value || undefined)
     list.value = res.data || []
   } finally {
     loading.value = false
+  }
+}
+
+async function loadOwnerOptions() {
+  try {
+    const res = await getOwnerOptions()
+    ownerOptions.value = res.data || []
+  } catch {
+    ownerOptions.value = []
   }
 }
 
@@ -188,13 +212,14 @@ function openDialog(row) {
     form.value = {
       id: row.id,
       year: row.year,
+      ownerId: row.ownerId?.toString() || '',
       targetAmount: Number(row.targetAmount),
       startAmount: Number(row.startAmount),
       remark: row.remark || '',
     }
   } else {
     isEdit.value = false
-    form.value = { year: null, targetAmount: null, startAmount: 0, remark: '' }
+    form.value = { year: null, ownerId: selectedOwner.value || '', targetAmount: null, startAmount: 0, remark: '' }
   }
   dialogVisible.value = true
 }
@@ -210,6 +235,7 @@ async function handleSubmit() {
   try {
     const data = {
       year: form.value.year,
+      ownerId: form.value.ownerId,
       targetAmount: form.value.targetAmount,
       startAmount: form.value.startAmount,
       remark: form.value.remark,
@@ -236,7 +262,10 @@ async function handleDelete(id) {
   } catch { /* handled */ }
 }
 
-onMounted(fetchList)
+onMounted(() => {
+  loadOwnerOptions()
+  fetchList()
+})
 </script>
 
 <style scoped>
@@ -251,6 +280,11 @@ onMounted(fetchList)
   font-size: 22px;
   font-weight: 700;
   color: #1D2129;
+}
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 /* 进度概览卡片 — glass-card--hero-green 提供基础样式 */
@@ -338,6 +372,11 @@ onMounted(fetchList)
   font-size: 16px;
   font-weight: 600;
   color: #1D2129;
+}
+.goal-card-owner {
+  font-size: 13px;
+  font-weight: 400;
+  color: #86909C;
 }
 .goal-card-body {
   display: flex;

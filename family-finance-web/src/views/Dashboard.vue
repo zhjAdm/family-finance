@@ -2,9 +2,18 @@
   <div class="dashboard">
     <div class="dashboard-header">
       <h2>财务看板</h2>
-      <el-select v-model="selectedYear" @change="loadDashboard" style="width: 120px">
-        <el-option v-for="y in years" :key="y" :label="y + '年'" :value="y" />
-      </el-select>
+      <div class="header-selectors">
+        <div class="view-toggle">
+          <button :class="{ active: !isPersonal }" @click="switchView('all')">所有</button>
+          <button :class="{ active: isPersonal }" @click="switchView('personal')">个人</button>
+        </div>
+        <el-select v-model="selectedOwner" placeholder="选择人" style="width: 120px" @change="onOwnerSelectChange" :disabled="!isPersonal">
+          <el-option v-for="o in ownerOptions" :key="o.id" :label="o.displayName || o.name" :value="o.id" />
+        </el-select>
+        <el-select v-model="selectedYear" @change="loadDashboard" style="width: 110px">
+          <el-option v-for="y in years" :key="y" :label="y + '年'" :value="y" />
+        </el-select>
+      </div>
     </div>
 
     <div v-if="!dashboardData" class="empty-state">
@@ -79,15 +88,15 @@
           <div ref="trendChartRef" class="chart-container"></div>
         </div>
         <div class="chart-card glass-card">
-          <div class="chart-card-title">资产类型分布</div>
-          <div ref="assetTypeChartRef" class="chart-container"></div>
+          <div class="chart-card-title">账户余额</div>
+          <div ref="accountChartRef" class="chart-container"></div>
         </div>
       </div>
 
       <div class="charts-grid">
         <div class="chart-card glass-card">
-          <div class="chart-card-title">账户余额</div>
-          <div ref="accountChartRef" class="chart-container"></div>
+          <div class="chart-card-title">资产类型分布</div>
+          <div ref="assetTypeChartRef" class="chart-container"></div>
         </div>
         <div class="chart-card glass-card">
           <div class="chart-card-title">风险等级分布</div>
@@ -95,7 +104,7 @@
         </div>
       </div>
 
-      <div class="charts-grid">
+      <div class="charts-grid" v-if="!selectedOwner">
         <div class="chart-card glass-card chart-card--half">
           <div class="chart-card-title">所有人资产分布</div>
           <div ref="ownerChartRef" class="chart-container"></div>
@@ -109,7 +118,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import { getDashboard } from '../api'
+import { getDashboard, getOwnerOptions } from '../api'
 
 const selectedYear = ref(new Date().getFullYear())
 const years = ref([])
@@ -125,6 +134,42 @@ let assetTypeChart = null
 let accountChart = null
 let riskChart = null
 let ownerChart = null
+
+const selectedOwner = ref('')
+const isPersonal = ref(false)
+const ownerOptions = ref([])
+const filteredAssetTypeDist = ref([])
+const filteredRiskDist = ref([])
+
+function switchView(mode) {
+  if (mode === 'personal' && !isPersonal.value) {
+    isPersonal.value = true
+    if (!selectedOwner.value && ownerOptions.value.length > 0) {
+      selectedOwner.value = ownerOptions.value[0].id
+    }
+    loadDashboard()
+  } else if (mode === 'all' && isPersonal.value) {
+    isPersonal.value = false
+    selectedOwner.value = ''
+    loadDashboard()
+  }
+}
+
+function onOwnerSelectChange() {
+  if (!selectedOwner.value) {
+    isPersonal.value = false
+  }
+  loadDashboard()
+}
+
+async function loadOwnerOptions() {
+  try {
+    const res = await getOwnerOptions()
+    ownerOptions.value = res.data || []
+  } catch {
+    ownerOptions.value = []
+  }
+}
 
 const progressGradient = computed(() => {
   const rate = dashboardData.value?.completionRate || 0
@@ -148,8 +193,10 @@ function initYears() {
 
 async function loadDashboard() {
   try {
-    const res = await getDashboard(selectedYear.value)
+    const res = await getDashboard(selectedYear.value, selectedOwner.value || undefined)
     dashboardData.value = res.data
+    filteredAssetTypeDist.value = res.data.assetTypeDistribution || []
+    filteredRiskDist.value = res.data.riskDistribution || []
     await nextTick()
     renderCharts()
   } catch {
@@ -162,7 +209,7 @@ function renderCharts() {
   renderAssetTypeChart()
   renderAccountChart()
   renderRiskChart()
-  renderOwnerChart()
+  if (!selectedOwner.value) renderOwnerChart()
 }
 
 const softColors = ['#409EFF', '#67C23A', '#7C6FF7', '#E6A23C', '#F56C6C', '#36CFC9', '#FF85C0', '#B37FEB']
@@ -179,9 +226,49 @@ function renderTrendChart() {
   if (!trendChart) trendChart = echarts.init(trendChartRef.value)
   const isMobile = window.innerWidth <= 768
   const data = dashboardData.value?.trend || []
+  const ownerTrend = dashboardData.value?.ownerTrend
+
+  const series = [{
+    name: '总计',
+    type: 'line',
+    data: data.map(d => Number(d.amount)),
+    smooth: true,
+    symbol: 'circle',
+    symbolSize: 6,
+    areaStyle: {
+      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: 'rgba(64,158,255,.18)' },
+        { offset: 1, color: 'rgba(64,158,255,0)' },
+      ]),
+    },
+    lineStyle: { width: 2.5, color: '#409EFF' },
+    itemStyle: { color: '#409EFF', borderColor: '#fff', borderWidth: 2 },
+  }]
+
+  if (ownerTrend && ownerTrend.owners && ownerTrend.owners.length > 1) {
+    ownerTrend.owners.forEach((owner, i) => {
+      const color = softColors[(i + 1) % softColors.length]
+      series.push({
+        name: owner.name,
+        type: 'line',
+        data: owner.data,
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { width: 2, color },
+        itemStyle: { color, borderColor: '#fff', borderWidth: 1 },
+      })
+    })
+  }
+
   const option = {
     tooltip: { trigger: 'axis', ...glassTooltip },
-    grid: { left: isMobile ? 40 : 60, right: isMobile ? 10 : 30, top: 20, bottom: 30 },
+    legend: {
+      top: 0,
+      textStyle: { color: '#86909C', fontSize: 12 },
+      itemGap: 16,
+    },
+    grid: { left: isMobile ? 40 : 60, right: isMobile ? 10 : 30, top: 36, bottom: 30 },
     xAxis: {
       type: 'category',
       data: data.map(d => d.snapshotDate),
@@ -196,21 +283,7 @@ function renderTrendChart() {
       axisLine: { show: false },
       axisTick: { show: false },
     },
-    series: [{
-      type: 'line',
-      data: data.map(d => Number(d.amount)),
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 6,
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(64,158,255,.18)' },
-          { offset: 1, color: 'rgba(64,158,255,0)' },
-        ]),
-      },
-      lineStyle: { width: 2.5, color: '#409EFF' },
-      itemStyle: { color: '#409EFF', borderColor: '#fff', borderWidth: 2 },
-    }],
+    series,
   }
   trendChart.setOption(option)
 }
@@ -218,7 +291,7 @@ function renderTrendChart() {
 function renderAssetTypeChart() {
   if (!assetTypeChartRef.value) return
   if (!assetTypeChart) assetTypeChart = echarts.init(assetTypeChartRef.value)
-  const data = dashboardData.value?.assetTypeDistribution || []
+  const data = filteredAssetTypeDist.value || []
   const option = {
     tooltip: { trigger: 'item', ...glassTooltip, formatter: '{b}: ¥{c} ({d}%)' },
     legend: { bottom: 0, textStyle: { color: '#86909C', fontSize: 12 }, itemGap: 16 },
@@ -277,7 +350,7 @@ function renderAccountChart() {
 function renderRiskChart() {
   if (!riskChartRef.value) return
   if (!riskChart) riskChart = echarts.init(riskChartRef.value)
-  const data = dashboardData.value?.riskDistribution || []
+  const data = filteredRiskDist.value || []
   const levelMap = { LOW: '低风险', MEDIUM: '中风险', HIGH: '高风险', NONE: '无风险' }
   const colorMap = { LOW: '#67C23A', MEDIUM: '#E6A23C', HIGH: '#F56C6C', NONE: '#C9CDD4' }
   const option = {
@@ -322,8 +395,9 @@ function resizeCharts() {
   ownerChart?.resize()
 }
 
-onMounted(() => {
+onMounted(async () => {
   initYears()
+  await loadOwnerOptions()
   loadDashboard()
   window.addEventListener('resize', resizeCharts)
 })
@@ -350,6 +424,38 @@ onBeforeUnmount(() => {
   font-size: 22px;
   font-weight: 700;
   color: #1D2129;
+}
+.header-selectors {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.view-toggle {
+  display: flex;
+  background: #F2F3F5;
+  border-radius: 8px;
+  padding: 2px;
+}
+.view-toggle button {
+  border: none;
+  background: transparent;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #86909C;
+  cursor: pointer;
+  transition: all .2s ease;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.view-toggle button:hover {
+  color: #4E5969;
+}
+.view-toggle button.active {
+  background: #fff;
+  color: #1D2129;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  font-weight: 600;
 }
 .empty-state {
   margin-top: 80px;
@@ -501,9 +607,22 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
   .dashboard-header {
     margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
   .dashboard-header h2 {
     font-size: 18px;
+  }
+  .header-selectors {
+    width: 100%;
+    gap: 8px;
+  }
+  .header-selectors .el-select {
+    flex: 1;
+  }
+  .view-toggle button {
+    padding: 5px 12px;
+    font-size: 12px;
   }
 
   /* 资产净值卡片 */
