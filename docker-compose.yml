@@ -16,6 +16,7 @@ services:
 
   backend:
     build: ./family-finance-server
+    image: family-finance-server:1.0.0
     container_name: family_finance_server
     environment:
       DATABASE_URL: postgresql://finance:finance_password@postgres:5432/family_finance
@@ -28,6 +29,7 @@ services:
 
   frontend:
     build: ./family-finance-web
+    image: family-finance-web:1.0.0
     container_name: family_finance_web
     ports:
       - "8088:80"
