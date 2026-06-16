@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: family_finance_db
+    environment:
+      POSTGRES_USER: finance
+      POSTGRES_PASSWORD: finance_password
+      POSTGRES_DB: family_finance
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build: ./family-finance-server
+    container_name: family_finance_server
+    environment:
+      DATABASE_URL: postgresql://finance:finance_password@postgres:5432/family_finance
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  frontend:
+    build: ./family-finance-web
+    container_name: family_finance_web
+    ports:
+      - "8088:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

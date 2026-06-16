@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model FinanceYearGoal {
+  id           BigInt   @id @default(autoincrement())
+  year         Int      @unique
+  targetAmount Decimal  @map("target_amount") @db.Decimal(18, 2)
+  startAmount  Decimal  @default(0) @map("start_amount") @db.Decimal(18, 2)
+  remark       String?  @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("finance_year_goal")
+}
+
+model FinanceOwner {
+  id          BigInt   @id @default(autoincrement())
+  name        String   @db.VarChar(50)
+  displayName String?  @map("display_name") @db.VarChar(50)
+  remark      String?  @db.VarChar(255)
+  enabled     Boolean  @default(true)
+  sort        Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  accounts    FinanceAccount[]
+  snapshots   FinanceAssetSnapshot[]
+
+  @@map("finance_owner")
+}
+
+model FinanceAssetType {
+  id             BigInt   @id @default(autoincrement())
+  name           String   @db.VarChar(50)
+  code           String   @unique @db.VarChar(50)
+  direction      String   @default("ASSET") @db.VarChar(20)
+  riskLevel      String?  @default("NONE") @map("risk_level") @db.VarChar(20)
+  includeInTotal Boolean  @default(true) @map("include_in_total")
+  includeInChart Boolean  @default(true) @map("include_in_chart")
+  sort           Int      @default(0)
+  enabled        Boolean  @default(true)
+  remark         String?  @db.VarChar(255)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  accounts       FinanceAccount[]
+  snapshots      FinanceAssetSnapshot[]
+
+  @@map("finance_asset_type")
+}
+
+model FinanceAccount {
+  id                 BigInt   @id @default(autoincrement())
+  name               String   @db.VarChar(100)
+  code               String?  @unique @db.VarChar(100)
+  ownerId            BigInt   @map("owner_id")
+  defaultAssetTypeId BigInt?  @map("default_asset_type_id")
+  accountCategory    String?  @map("account_category") @db.VarChar(50)
+  includeInTotal     Boolean  @default(true) @map("include_in_total")
+  sort               Int      @default(0)
+  enabled            Boolean  @default(true)
+  remark             String?  @db.VarChar(255)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  owner              FinanceOwner      @relation(fields: [ownerId], references: [id])
+  defaultAssetType   FinanceAssetType? @relation(fields: [defaultAssetTypeId], references: [id])
+  snapshots          FinanceAssetSnapshot[]
+
+  @@map("finance_account")
+}
+
+model FinanceAssetSnapshot {
+  id               BigInt   @id @default(autoincrement())
+  snapshotDate     DateTime @map("snapshot_date") @db.Date
+  ownerId          BigInt   @map("owner_id")
+  accountId        BigInt   @map("account_id")
+  assetTypeId      BigInt   @map("asset_type_id")
+  amount           Decimal  @db.Decimal(18, 2)
+  calculatedAmount Decimal  @map("calculated_amount") @db.Decimal(18, 2)
+  remark           String?  @db.VarChar(255)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  owner            FinanceOwner     @relation(fields: [ownerId], references: [id])
+  account          FinanceAccount   @relation(fields: [accountId], references: [id])
+  assetType        FinanceAssetType @relation(fields: [assetTypeId], references: [id])
+
+  @@map("finance_asset_snapshot")
+}
