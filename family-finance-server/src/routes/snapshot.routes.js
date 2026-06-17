@@ -7,19 +7,64 @@ const router = Router();
 // 查询资产快照
 router.get('/snapshots', async (req, res, next) => {
   try {
-    const { snapshotDate, startDate, endDate, ownerId, accountId, assetTypeId } = req.query;
+    const { snapshotDate, startDate, endDate, ownerId, accountId, assetTypeId, latest } = req.query;
     const where = {};
-    if (snapshotDate) where.snapshotDate = new Date(snapshotDate);
-    if (startDate && endDate) {
-      where.snapshotDate = { gte: new Date(startDate), lte: new Date(endDate) };
-    } else if (startDate) {
-      where.snapshotDate = { gte: new Date(startDate) };
-    } else if (endDate) {
-      where.snapshotDate = { lte: new Date(endDate) };
-    }
     if (ownerId) where.ownerId = BigInt(ownerId);
     if (accountId) where.accountId = BigInt(accountId);
     if (assetTypeId) where.assetTypeId = BigInt(assetTypeId);
+
+    if (latest === 'true') {
+      // 每个账户取最新一条快照
+      const ownerFilter = ownerId ? { ownerId: BigInt(ownerId) } : {};
+      const maxDates = await prisma.financeAssetSnapshot.groupBy({
+        by: ['accountId'],
+        where: {
+          account: { includeInTotal: true },
+          assetType: { includeInTotal: true },
+          ...ownerFilter,
+        },
+        _max: { snapshotDate: true },
+      });
+      const pairs = maxDates.filter((r) => r._max.snapshotDate);
+      if (pairs.length > 0) {
+        where.OR = pairs.map((r) => ({
+          accountId: r.accountId,
+          snapshotDate: r._max.snapshotDate,
+        }));
+      } else {
+        return res.json(success([]));
+      }
+    } else if (latest === 'exclude') {
+      // 排除每个账户的最新一条，只返回历史记录
+      const ownerFilter = ownerId ? { ownerId: BigInt(ownerId) } : {};
+      const maxDates = await prisma.financeAssetSnapshot.groupBy({
+        by: ['accountId'],
+        where: {
+          account: { includeInTotal: true },
+          assetType: { includeInTotal: true },
+          ...ownerFilter,
+        },
+        _max: { snapshotDate: true },
+      });
+      const pairs = maxDates.filter((r) => r._max.snapshotDate);
+      if (pairs.length > 0) {
+        where.NOT = {
+          OR: pairs.map((r) => ({
+            accountId: r.accountId,
+            snapshotDate: r._max.snapshotDate,
+          })),
+        };
+      }
+    } else {
+      if (snapshotDate) where.snapshotDate = new Date(snapshotDate);
+      if (startDate && endDate) {
+        where.snapshotDate = { gte: new Date(startDate), lte: new Date(endDate) };
+      } else if (startDate) {
+        where.snapshotDate = { gte: new Date(startDate) };
+      } else if (endDate) {
+        where.snapshotDate = { lte: new Date(endDate) };
+      }
+    }
 
     const list = await prisma.financeAssetSnapshot.findMany({
       where,

@@ -22,7 +22,7 @@
 
     <template v-else>
       <!-- 资产净值卡片 -->
-      <div class="net-asset-card glass-card glass-card--hero-blue">
+      <div class="net-asset-card glass-card glass-card--hero-blue" @click="router.push('/snapshots')" style="cursor:pointer">
         <div class="net-asset-main">
           <div class="net-asset-label">资产净值</div>
           <div class="net-asset-value">{{ formatMoney(dashboardData.netAssetAmount) }}</div>
@@ -117,9 +117,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { getDashboard, getOwnerOptions } from '../api'
 
+const router = useRouter()
 const selectedYear = ref(new Date().getFullYear())
 const years = ref([])
 const dashboardData = ref(null)
@@ -271,8 +273,11 @@ function renderTrendChart() {
     grid: { left: isMobile ? 40 : 60, right: isMobile ? 10 : 30, top: 36, bottom: 30 },
     xAxis: {
       type: 'category',
-      data: data.map(d => d.snapshotDate),
-      axisLabel: { color: '#86909C', rotate: 30, fontSize: 11 },
+      data: data.map(d => {
+        const m = parseInt(d.snapshotDate.split('-')[1])
+        return m + '月'
+      }),
+      axisLabel: { color: '#86909C', fontSize: 11 },
       axisLine: { lineStyle: { color: 'rgba(255,255,255,0.3)' } },
       axisTick: { show: false },
     },
@@ -285,7 +290,7 @@ function renderTrendChart() {
     },
     series,
   }
-  trendChart.setOption(option)
+  trendChart.setOption(option, true)
 }
 
 function renderAssetTypeChart() {
@@ -304,7 +309,7 @@ function renderAssetTypeChart() {
       emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,.1)' } },
     }],
   }
-  assetTypeChart.setOption(option)
+  assetTypeChart.setOption(option, true)
 }
 
 function renderAccountChart() {
@@ -344,7 +349,7 @@ function renderAccountChart() {
       label: { show: true, position: 'right', color: '#4E5969', fontSize: 12, formatter: (p) => (p.value / 10000).toFixed(1) + '万' },
     }],
   }
-  accountChart.setOption(option)
+  accountChart.setOption(option, true)
 }
 
 function renderRiskChart() {
@@ -367,7 +372,7 @@ function renderRiskChart() {
       label: { show: true, formatter: '{b}: {d}%', fontSize: 11, color: '#86909C' },
     }],
   }
-  riskChart.setOption(option)
+  riskChart.setOption(option, true)
 }
 
 function renderOwnerChart() {
@@ -384,7 +389,7 @@ function renderOwnerChart() {
       label: { show: true, formatter: '{b}\n{d}%', fontSize: 11, color: '#86909C' },
     }],
   }
-  ownerChart.setOption(option)
+  ownerChart.setOption(option, true)
 }
 
 function resizeCharts() {

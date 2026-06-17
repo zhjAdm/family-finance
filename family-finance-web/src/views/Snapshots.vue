@@ -2,7 +2,13 @@
   <div class="snapshots">
     <div class="page-header">
       <h2>资产快照</h2>
-      <el-button type="primary" @click="openAddDialog">新增记录</el-button>
+      <div class="header-actions">
+        <div class="view-toggle">
+          <button :class="{ active: activeTab === 'latest' }" @click="switchTab('latest')">最新记录</button>
+          <button :class="{ active: activeTab === 'history' }" @click="switchTab('history')">历史快照</button>
+        </div>
+        <el-button type="primary" @click="openAddDialog">新增记录</el-button>
+      </div>
     </div>
 
     <!-- 记录列表 -->
@@ -97,6 +103,12 @@ import {
 
 const list = ref([])
 const loading = ref(false)
+const activeTab = ref('latest')
+
+function switchTab(tab) {
+  activeTab.value = tab
+  fetchList()
+}
 
 // 下拉选项
 const ownerOptions = ref([])
@@ -179,7 +191,8 @@ async function loadOptions() {
 async function fetchList() {
   loading.value = true
   try {
-    const res = await getSnapshots()
+    const params = activeTab.value === 'latest' ? { latest: 'true' } : { latest: 'exclude' }
+    const res = await getSnapshots(params)
     const data = res.data || []
     // 按日期倒序
     data.sort((a, b) => normalizeDate(b.snapshotDate).localeCompare(normalizeDate(a.snapshotDate)))
@@ -325,6 +338,38 @@ onMounted(() => {
   font-weight: 700;
   color: #1D2129;
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.view-toggle {
+  display: flex;
+  background: #F2F3F5;
+  border-radius: 8px;
+  padding: 2px;
+}
+.view-toggle button {
+  border: none;
+  background: transparent;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #86909C;
+  cursor: pointer;
+  transition: all .2s ease;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.view-toggle button:hover {
+  color: #4E5969;
+}
+.view-toggle button.active {
+  background: #fff;
+  color: #1D2129;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  font-weight: 600;
+}
 
 /* 卡片列表 */
 .item-list {
@@ -427,8 +472,20 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
+  .page-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
   .page-header h2 {
     font-size: 18px;
+  }
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .view-toggle button {
+    padding: 5px 12px;
+    font-size: 12px;
   }
   .item-card {
     padding: 14px 16px;

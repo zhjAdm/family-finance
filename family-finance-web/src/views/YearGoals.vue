@@ -3,9 +3,6 @@
     <div class="page-header">
       <h2>年度目标</h2>
       <div class="header-actions">
-        <el-select v-model="selectedOwner" placeholder="全部所有人" clearable style="width: 160px" @change="fetchList">
-          <el-option v-for="o in ownerOptions" :key="o.id" :label="o.displayName || o.name" :value="o.id" />
-        </el-select>
         <el-button type="primary" @click="openDialog()">新增目标</el-button>
       </div>
     </div>
@@ -75,14 +72,22 @@
             <span class="goal-card-value highlight">{{ formatMoney(item.targetAmount) }}</span>
           </div>
           <div class="goal-card-field">
-            <span class="goal-card-label">年初资产</span>
-            <span class="goal-card-value">{{ formatMoney(item.startAmount) }}</span>
+            <span class="goal-card-label">当前资产</span>
+            <span class="goal-card-value">{{ formatMoney(getOwnerCurrentAmount(item)) }}</span>
           </div>
-          <div class="goal-card-field" v-if="item.remark">
-            <span class="goal-card-label">备注</span>
-            <span class="goal-card-remark">{{ item.remark }}</span>
+          <div class="goal-card-field">
+            <span class="goal-card-label">完成进度</span>
+            <span class="goal-card-value" :class="{ 'progress-complete': getOwnerProgress(item) >= 100 }">{{ getOwnerProgress(item) }}%</span>
+          </div>
+          <div class="goal-card-field">
+            <span class="goal-card-label">{{ getOwnerProgress(item) >= 100 ? '超额' : '差额' }}</span>
+            <span class="goal-card-value" :class="getOwnerProgress(item) >= 100 ? 'surplus' : 'deficit'">{{ formatMoney(Math.abs(getOwnerDifference(item))) }}</span>
           </div>
         </div>
+        <div class="goal-card-progress-bar">
+          <div class="goal-card-progress-fill" :style="{ width: Math.min(getOwnerProgress(item), 100) + '%' }"></div>
+        </div>
+        <div class="goal-card-remark" v-if="item.remark">{{ item.remark }}</div>
       </div>
     </div>
 
@@ -127,7 +132,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getYearGoals, createYearGoal, updateYearGoal, deleteYearGoal, getOwnerOptions } from '../api'
+import { getYearGoals, createYearGoal, updateYearGoal, deleteYearGoal, getOwnerOptions, getDashboard } from '../api'
 
 const list = ref([])
 const loading = ref(false)
@@ -142,36 +147,41 @@ const rules = {
   targetAmount: [{ required: true, message: '请输入目标金额', trigger: 'blur' }],
 }
 
-const selectedOwner = ref('')
 const ownerOptions = ref([])
+const dashboardData = ref(null)
+const ownerDashboardData = ref({})
 
-// 当前激活目标（取当前年份或最近年份）
+// 当前激活目标（取当前年份或最近年份，汇总所有人的目标）
 const activeGoal = computed(() => {
   if (list.value.length === 0) return null
   const currentYear = new Date().getFullYear()
-  const current = list.value.find(g => g.year === currentYear)
-  if (current) {
-    const target = Number(current.targetAmount) || 1
-    const currentAmount = 0 // 由 dashboard 提供，此处为静态
+  const currentYearGoals = list.value.filter(g => g.year === currentYear)
+  if (currentYearGoals.length > 0) {
+    const totalTarget = currentYearGoals.reduce((sum, g) => sum + (Number(g.targetAmount) || 0), 0)
+    const totalStart = currentYearGoals.reduce((sum, g) => sum + (Number(g.startAmount) || 0), 0)
+    const currentAmount = dashboardData.value ? Number(dashboardData.value.currentTotalAmount || 0) : 0
     return {
       year: currentYear,
-      ownerName: current.owner?.displayName || current.owner?.name || '',
-      targetAmount: current.targetAmount,
-      startAmount: current.startAmount,
+      ownerName: '',
+      targetAmount: totalTarget,
+      startAmount: totalStart,
       currentAmount: currentAmount,
-      remaining: Math.max(target - currentAmount, 0),
+      remaining: Math.max(totalTarget - currentAmount, 0),
     }
   }
   // fallback to latest year
-  const latest = [...list.value].sort((a, b) => b.year - a.year)[0]
-  const target = Number(latest.targetAmount) || 1
+  const latestYear = Math.max(...list.value.map(g => g.year))
+  const latestGoals = list.value.filter(g => g.year === latestYear)
+  const totalTarget = latestGoals.reduce((sum, g) => sum + (Number(g.targetAmount) || 0), 0)
+  const totalStart = latestGoals.reduce((sum, g) => sum + (Number(g.startAmount) || 0), 0)
+  const currentAmount = dashboardData.value ? Number(dashboardData.value.currentTotalAmount || 0) : 0
   return {
-    year: latest.year,
-    ownerName: latest.owner?.displayName || latest.owner?.name || '',
-    targetAmount: latest.targetAmount,
-    startAmount: latest.startAmount,
-    currentAmount: 0,
-    remaining: target,
+    year: latestYear,
+    ownerName: '',
+    targetAmount: totalTarget,
+    startAmount: totalStart,
+    currentAmount: currentAmount,
+    remaining: Math.max(totalTarget - currentAmount, 0),
   }
 })
 
@@ -187,14 +197,69 @@ function formatMoney(val) {
   return Number(val).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+function getOwnerCurrentAmount(item) {
+  const key = `${item.year}_${item.ownerId}`
+  const data = ownerDashboardData.value[key]
+  return data ? Number(data.currentTotalAmount || 0) : 0
+}
+
+function getOwnerProgress(item) {
+  const target = Number(item.targetAmount) || 0
+  if (target <= 0) return 0
+  const current = getOwnerCurrentAmount(item)
+  return Math.min(Math.round((current / target) * 100), 100)
+}
+
+function getOwnerDifference(item) {
+  const target = Number(item.targetAmount) || 0
+  const current = getOwnerCurrentAmount(item)
+  return current - target
+}
+
 async function fetchList() {
   loading.value = true
   try {
-    const res = await getYearGoals(selectedOwner.value || undefined)
+    const res = await getYearGoals()
     list.value = res.data || []
+    await loadDashboardData()
   } finally {
     loading.value = false
   }
+}
+
+async function loadDashboardData() {
+  if (list.value.length === 0) {
+    dashboardData.value = null
+    ownerDashboardData.value = {}
+    return
+  }
+  const currentYear = new Date().getFullYear()
+  const currentYearGoals = list.value.filter(g => g.year === currentYear)
+  const goals = currentYearGoals.length > 0 ? currentYearGoals : list.value
+  const targetYear = goals[0]?.year || currentYear
+
+  // Load overall dashboard data
+  try {
+    const res = await getDashboard(targetYear, '')
+    dashboardData.value = res.data || null
+  } catch {
+    dashboardData.value = null
+  }
+
+  // Load per-owner dashboard data
+  const uniqueOwners = [...new Set(goals.map(g => g.ownerId?.toString()).filter(Boolean))]
+  const ownerData = {}
+  await Promise.all(
+    uniqueOwners.map(async (ownerId) => {
+      try {
+        const res = await getDashboard(targetYear, ownerId)
+        ownerData[`${targetYear}_${ownerId}`] = res.data || null
+      } catch {
+        ownerData[`${targetYear}_${ownerId}`] = null
+      }
+    })
+  )
+  ownerDashboardData.value = ownerData
 }
 
 async function loadOwnerOptions() {
@@ -219,7 +284,7 @@ function openDialog(row) {
     }
   } else {
     isEdit.value = false
-    form.value = { year: null, ownerId: selectedOwner.value || '', targetAmount: null, startAmount: 0, remark: '' }
+    form.value = { year: null, ownerId: '', targetAmount: null, startAmount: 0, remark: '' }
   }
   dialogVisible.value = true
 }
@@ -400,9 +465,34 @@ onMounted(() => {
 .goal-card-value.highlight {
   color: #67C23A;
 }
+.goal-card-value.progress-complete {
+  color: #67C23A;
+}
+.goal-card-value.surplus {
+  color: #67C23A;
+}
+.goal-card-value.deficit {
+  color: #F56C6C;
+}
+.goal-card-progress-bar {
+  height: 6px;
+  background: #E8F3E8;
+  border-radius: 3px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+.goal-card-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #67C23A, #95D475);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
 .goal-card-remark {
-  font-size: 14px;
-  color: #4E5969;
+  font-size: 13px;
+  color: #86909C;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #F2F3F5;
 }
 
 .empty-state {

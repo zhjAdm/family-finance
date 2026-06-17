@@ -70,7 +70,7 @@ export const getAssetTypeOptions = () => request.get('/options/asset-types')
 
 // 看板
 export const getDashboard = (year, ownerId) => request.get('/dashboard', { params: { year, ownerId } })
-export const getDistributions = (ownerId) => request.get('/dashboard/distributions', { params: { ownerId } })
+export const getDistributions = (year, ownerId) => request.get('/dashboard/distributions', { params: { year, ownerId } })
 
 // 导出
 export const exportSnapshotsCsv = () => '/api/export/snapshots.csv'
