@@ -1,6 +1,6 @@
 {
   "name": "family-finance-web",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "家庭财务管理系统前端",
   "scripts": {
