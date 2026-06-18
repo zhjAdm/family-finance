@@ -62,9 +62,13 @@ async function fetchGoldPrice() {
     throw new Error('未找到 AU9999 数据');
   }
 
-  const price = au9999.lastclosingprice || au9999.buyprice;
+  console.log('[GoldPrice] AU9999 原始数据:', JSON.stringify(au9999));
+
+  // 优先取 buyprice，fallback 到 lastclosingprice / sellprice / price
+  const rawPrice = au9999.buyprice ?? au9999.lastclosingprice ?? au9999.sellprice ?? au9999.price;
+  const price = rawPrice != null && rawPrice !== 0 ? Number(rawPrice) : null;
   if (!price) {
-    throw new Error('AU9999 价格数据为空');
+    throw new Error('AU9999 价格数据为空（可能尚未开盘或非交易日），请稍后重试');
   }
 
   const now = new Date().toISOString();

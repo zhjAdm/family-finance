@@ -32,3 +32,16 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: family_finance_watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_POLL_INTERVAL: 3600
+      WATCHTOWER_CLEANUP: "true"
+    command:
+      - family_finance_server
+      - family_finance_web
+    restart: unless-stopped

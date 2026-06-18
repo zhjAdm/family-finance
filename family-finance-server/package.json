@@ -1,6 +1,6 @@
 {
   "name": "family-finance-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "家庭财务管理系统后端",
   "private": true,
   "scripts": {
