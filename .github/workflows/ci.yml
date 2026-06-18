@@ -1,0 +1,44 @@
+name: Build & Push to ACR
+
+on:
+  push:
+    branches: [master, main]
+    paths-ignore:
+      - '**.md'
+      - '.idea/**'
+
+env:
+  REGISTRY: ${{ secrets.ACR_REGISTRY }}
+  NAMESPACE: ${{ secrets.ACR_NAMESPACE }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to ACR
+        run: |
+          docker login ${{ env.REGISTRY }} \
+            -u ${{ secrets.ACR_USERNAME }} \
+            -p ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build & Push Backend
+        run: |
+          IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-server
+          docker build \
+            -t $IMAGE:latest \
+            -t $IMAGE:${{ github.sha }} \
+            ./family-finance-server
+          docker push $IMAGE:latest
+          docker push $IMAGE:${{ github.sha }}
+
+      - name: Build & Push Frontend
+        run: |
+          IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-web
+          docker build \
+            -t $IMAGE:latest \
+            -t $IMAGE:${{ github.sha }} \
+            ./family-finance-web
+          docker push $IMAGE:latest
+          docker push $IMAGE:${{ github.sha }}
