@@ -36,11 +36,9 @@ jobs:
           docker build \
             -t $IMAGE:latest \
             -t $IMAGE:${{ env.BACKEND_VERSION }} \
-            -t $IMAGE:${{ github.sha }} \
             ./family-finance-server
           docker push $IMAGE:latest
           docker push $IMAGE:${{ env.BACKEND_VERSION }}
-          docker push $IMAGE:${{ github.sha }}
 
       - name: Build & Push Frontend
         run: |
@@ -48,8 +46,6 @@ jobs:
           docker build \
             -t $IMAGE:latest \
             -t $IMAGE:${{ env.FRONTEND_VERSION }} \
-            -t $IMAGE:${{ github.sha }} \
             ./family-finance-web
           docker push $IMAGE:latest
           docker push $IMAGE:${{ env.FRONTEND_VERSION }}
-          docker push $IMAGE:${{ github.sha }}
