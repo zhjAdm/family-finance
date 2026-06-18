@@ -8,8 +8,8 @@ on:
       - '.idea/**'
 
 env:
-  REGISTRY: ${{ secrets.ACR_REGISTRY }}
-  NAMESPACE: ${{ secrets.ACR_NAMESPACE }}
+  REGISTRY: crpi-hdgsb1q7sltq08im.cn-qingdao.personal.cr.aliyuncs.com
+  NAMESPACE: family_finance
 
 jobs:
   build-and-push:
@@ -29,17 +29,6 @@ jobs:
           docker login ${{ env.REGISTRY }} \
             -u ${{ secrets.ACR_USERNAME }} \
             -p ${{ secrets.ACR_PASSWORD }}
-
-      - name: Check docker login
-        run: |
-          docker info
-
-      - name: Test ACR push permission
-        run: |
-          TEST_IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-server:ci-test
-          docker pull hello-world
-          docker tag hello-world $TEST_IMAGE
-          docker push $TEST_IMAGE
 
       - name: Build & Push Backend
         run: |
