@@ -30,6 +30,12 @@ jobs:
             -u ${{ secrets.ACR_USERNAME }} \
             -p ${{ secrets.ACR_PASSWORD }}
 
+      - name: Debug image name
+        run: |
+          echo "REGISTRY=${{ env.REGISTRY }}"
+          echo "NAMESPACE=${{ env.NAMESPACE }}"
+          echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-server"
+          echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-web"
       - name: Build & Push Backend
         run: |
           IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-server
