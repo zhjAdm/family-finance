@@ -17,6 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Get version
+        run: |
+          BACKEND_VERSION=$(node -p "require('./family-finance-server/package.json').version")
+          FRONTEND_VERSION=$(node -p "require('./family-finance-web/package.json').version")
+          echo "BACKEND_VERSION=$BACKEND_VERSION" >> $GITHUB_ENV
+          echo "FRONTEND_VERSION=$FRONTEND_VERSION" >> $GITHUB_ENV
+
       - name: Login to ACR
         run: |
           docker login ${{ env.REGISTRY }} \
@@ -28,9 +35,11 @@ jobs:
           IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-server
           docker build \
             -t $IMAGE:latest \
+            -t $IMAGE:${{ env.BACKEND_VERSION }} \
             -t $IMAGE:${{ github.sha }} \
             ./family-finance-server
           docker push $IMAGE:latest
+          docker push $IMAGE:${{ env.BACKEND_VERSION }}
           docker push $IMAGE:${{ github.sha }}
 
       - name: Build & Push Frontend
@@ -38,7 +47,9 @@ jobs:
           IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-web
           docker build \
             -t $IMAGE:latest \
+            -t $IMAGE:${{ env.FRONTEND_VERSION }} \
             -t $IMAGE:${{ github.sha }} \
             ./family-finance-web
           docker push $IMAGE:latest
+          docker push $IMAGE:${{ env.FRONTEND_VERSION }}
           docker push $IMAGE:${{ github.sha }}
