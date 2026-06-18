@@ -465,7 +465,6 @@ onMounted(() => {
 
 .item-actions {
   margin-top: 12px;
-  padding-top: 12px;
   border-top: 1px solid #f0f0f0;
   display: flex;
   gap: 16px;

@@ -35,6 +35,51 @@
         </div>
       </div>
 
+      <!-- 攒金概览 -->
+      <div class="gold-summary-card glass-card glass-card--gold" v-if="dashboardData.gold && dashboardData.gold.count > 0" @click="router.push('/golds')" style="cursor:pointer">
+        <div class="gold-summary-header">
+          <div class="gold-summary-title">攒金概览</div>
+          <div class="gold-summary-grid">
+            <div class="gold-stat">
+              <span class="gold-stat-label">总克重</span>
+              <span class="gold-stat-value">{{ formatGoldWeight(dashboardData.gold.totalWeight) }}<small>g</small></span>
+            </div>
+            <div class="gold-stat">
+              <span class="gold-stat-label">总投入</span>
+              <span class="gold-stat-value">{{ formatMoney(dashboardData.gold.totalAmount) }}</span>
+            </div>
+            <div class="gold-stat">
+              <span class="gold-stat-label">均价</span>
+              <span class="gold-stat-value">{{ formatMoney(dashboardData.gold.avgPrice) }}<small>/g</small></span>
+            </div>
+            <div class="gold-stat">
+              <span class="gold-stat-label">笔数</span>
+              <span class="gold-stat-value">{{ dashboardData.gold.count }}</span>
+            </div>
+          </div>
+          <div class="gold-summary-grid gold-summary-grid--market" v-if="dashboardData.gold.currentPrice">
+            <div class="gold-stat">
+              <span class="gold-stat-label">当前金价</span>
+              <span class="gold-stat-value gold-stat-value--price">{{ formatMoney(dashboardData.gold.currentPrice) }}<small>/g</small></span>
+            </div>
+            <div class="gold-stat">
+              <span class="gold-stat-label">当前市值</span>
+              <span class="gold-stat-value">{{ formatMoney(dashboardData.gold.marketValue) }}</span>
+            </div>
+            <div class="gold-stat">
+              <span class="gold-stat-label">收益</span>
+              <span class="gold-stat-value" :class="dashboardData.gold.profit >= 0 ? 'profit-up' : 'profit-down'">
+                {{ dashboardData.gold.profit >= 0 ? '+' : '' }}{{ formatMoney(dashboardData.gold.profit) }}
+              </span>
+            </div>
+            <div class="gold-stat gold-stat--hint">
+              <span class="gold-stat-label">更新时间</span>
+              <span class="gold-stat-hint">{{ formatGoldDate(dashboardData.gold.priceUpdatedAt) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 指标卡片行 -->
       <div class="metric-cards">
         <div class="metric-card glass-card">
@@ -186,6 +231,26 @@ function formatMoney(val) {
   return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+function formatGoldWeight(val) {
+  if (val === null || val === undefined) return '--'
+  return Number(val).toFixed(2)
+}
+
+function formatDateShort(val) {
+  if (!val) return ''
+  return String(val).slice(0, 10).replace(/-/g, '.')
+}
+
+function formatGoldDate(val) {
+  if (!val) return '未更新'
+  try {
+    const d = new Date(val)
+    return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return val
+  }
+}
+
 function initYears() {
   const current = new Date().getFullYear()
   for (let y = current - 3; y <= current + 3; y++) {
@@ -264,7 +329,18 @@ function renderTrendChart() {
   }
 
   const option = {
-    tooltip: { trigger: 'axis', ...glassTooltip },
+    tooltip: {
+      trigger: 'axis',
+      ...glassTooltip,
+      formatter: (params) => {
+        let result = params[0].axisValue + '<br/>'
+        params.forEach(p => {
+          const val = Number(p.value).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          result += `${p.marker}${p.seriesName}: ¥${val}<br/>`
+        })
+        return result
+      }
+    },
     legend: {
       top: 0,
       textStyle: { color: '#86909C', fontSize: 12 },
@@ -283,7 +359,7 @@ function renderTrendChart() {
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#86909C', formatter: (v) => (v / 10000).toFixed(0) + '万', fontSize: 11 },
+      axisLabel: { color: '#86909C', formatter: (v) => (v / 10000).toFixed(2) + '万', fontSize: 11 },
       splitLine: { lineStyle: { color: 'rgba(0,0,0,0.04)', type: 'dashed' } },
       axisLine: { show: false },
       axisTick: { show: false },
@@ -298,7 +374,7 @@ function renderAssetTypeChart() {
   if (!assetTypeChart) assetTypeChart = echarts.init(assetTypeChartRef.value)
   const data = filteredAssetTypeDist.value || []
   const option = {
-    tooltip: { trigger: 'item', ...glassTooltip, formatter: '{b}: ¥{c} ({d}%)' },
+    tooltip: { trigger: 'item', ...glassTooltip, formatter: (p) => `${p.name}: ¥${Number(p.value).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${p.percent}%)` },
     legend: { bottom: 0, textStyle: { color: '#86909C', fontSize: 12 }, itemGap: 16 },
     series: [{
       type: 'pie',
@@ -318,11 +394,22 @@ function renderAccountChart() {
   const isMobile = window.innerWidth <= 768
   const data = dashboardData.value?.accountDistribution || []
   const option = {
-    tooltip: { trigger: 'axis', ...glassTooltip },
+    tooltip: {
+      trigger: 'axis',
+      ...glassTooltip,
+      formatter: (params) => {
+        let result = params[0].axisValue + '<br/>'
+        params.forEach(p => {
+          const val = Number(p.value).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          result += `${p.marker}${p.seriesName}: ¥${val}<br/>`
+        })
+        return result
+      }
+    },
     grid: { left: isMobile ? 50 : 100, right: isMobile ? 10 : 30, top: 10, bottom: 20 },
     xAxis: {
       type: 'value',
-      axisLabel: { color: '#86909C', formatter: (v) => (v / 10000).toFixed(0) + '万', fontSize: 11 },
+      axisLabel: { color: '#86909C', formatter: (v) => (v / 10000).toFixed(2) + '万', fontSize: 11 },
       splitLine: { lineStyle: { color: 'rgba(0,0,0,0.04)', type: 'dashed' } },
       axisLine: { show: false },
       axisTick: { show: false },
@@ -346,7 +433,7 @@ function renderAccountChart() {
           { offset: 1, color: '#6BCBFF' },
         ]),
       },
-      label: { show: true, position: 'right', color: '#4E5969', fontSize: 12, formatter: (p) => (p.value / 10000).toFixed(1) + '万' },
+      label: { show: true, position: 'right', color: '#4E5969', fontSize: 12, formatter: (p) => (p.value / 10000).toFixed(2) + '万' },
     }],
   }
   accountChart.setOption(option, true)
@@ -359,7 +446,7 @@ function renderRiskChart() {
   const levelMap = { LOW: '低风险', MEDIUM: '中风险', HIGH: '高风险', NONE: '无风险' }
   const colorMap = { LOW: '#67C23A', MEDIUM: '#E6A23C', HIGH: '#F56C6C', NONE: '#C9CDD4' }
   const option = {
-    tooltip: { trigger: 'item', ...glassTooltip, formatter: '{b}: ¥{c} ({d}%)' },
+    tooltip: { trigger: 'item', ...glassTooltip, formatter: (p) => `${p.name}: ¥${Number(p.value).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${p.percent}%)` },
     series: [{
       type: 'pie',
       radius: '68%',
@@ -380,7 +467,7 @@ function renderOwnerChart() {
   if (!ownerChart) ownerChart = echarts.init(ownerChartRef.value)
   const data = dashboardData.value?.ownerDistribution || []
   const option = {
-    tooltip: { trigger: 'item', ...glassTooltip, formatter: '{b}: ¥{c} ({d}%)' },
+    tooltip: { trigger: 'item', ...glassTooltip, formatter: (p) => `${p.name}: ¥${Number(p.value).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${p.percent}%)` },
     series: [{
       type: 'pie',
       radius: '68%',
@@ -692,6 +779,124 @@ onBeforeUnmount(() => {
   .chart-card-title {
     font-size: 15px;
     margin-bottom: 12px;
+  }
+}
+
+/* 攒金概览 */
+.gold-summary-card {
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.glass-card--gold {
+  background: linear-gradient(135deg, #FFF8E1, #FFECB3);
+  border: 1px solid rgba(255, 179, 0, 0.2);
+}
+.gold-summary-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.gold-summary-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #5D4600;
+}
+.gold-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.gold-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.gold-stat-label {
+  font-size: 12px;
+  color: #8D6E00;
+  font-weight: 500;
+}
+.gold-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #5D4600;
+}
+.gold-stat-value small {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+.gold-stat-value--price {
+  color: #B8860B;
+}
+.gold-summary-grid--market {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(141, 110, 0, 0.15);
+}
+.profit-up { color: #558B2F; }
+.profit-down { color: #C62828; }
+.gold-stat--hint {
+  text-align: right;
+}
+.gold-stat-hint {
+  font-size: 12px;
+  color: #8D6E00;
+  opacity: 0.7;
+}
+.gold-recent-card {
+  flex: 1;
+  padding: 20px 24px;
+}
+.gold-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gold-recent-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+.gold-recent-item:last-child {
+  border-bottom: none;
+}
+.gold-recent-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gold-recent-channel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1D2129;
+}
+.gold-recent-weight {
+  font-size: 12px;
+  color: #909399;
+}
+.gold-recent-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.gold-recent-amount {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1D2129;
+}
+.gold-recent-date {
+  font-size: 12px;
+  color: #909399;
+}
+
+@media (max-width: 768px) {
+  .gold-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>

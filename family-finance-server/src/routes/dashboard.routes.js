@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const prisma = require('../prisma');
 const { success } = require('../utils/response');
+const { getCurrentPrice } = require('../services/gold-price.service');
 
 const router = Router();
 
@@ -283,6 +284,20 @@ router.get('/dashboard', async (req, res, next) => {
     }
     const netAssetAmount = assetAmount - debtAmount;
 
+    // 11. 攒金汇总
+    const goldSummary = await prisma.financeGold.aggregate({
+      _sum: { weightGrams: true, purchaseAmount: true },
+      _count: true,
+    });
+    const goldTotalWeight = Number(goldSummary._sum.weightGrams || 0);
+    const goldTotalAmount = Number(goldSummary._sum.purchaseAmount || 0);
+    const goldAvgPrice = goldTotalWeight > 0 ? goldTotalAmount / goldTotalWeight : 0;
+
+    const priceInfo = await getCurrentPrice();
+    const goldCurrentPrice = priceInfo.price;
+    const goldMarketValue = goldCurrentPrice ? goldTotalWeight * goldCurrentPrice : null;
+    const goldProfit = goldMarketValue !== null ? goldMarketValue - goldTotalAmount : null;
+
     res.json(success({
       year: targetYear,
       latestSnapshotDate: latestSnapshotDateStr,
@@ -301,6 +316,16 @@ router.get('/dashboard', async (req, res, next) => {
       trend,
       ownerTrend,
       riskDistribution,
+      gold: {
+        totalWeight: goldTotalWeight,
+        totalAmount: goldTotalAmount,
+        avgPrice: Math.round(goldAvgPrice * 100) / 100,
+        count: goldSummary._count,
+        currentPrice: goldCurrentPrice,
+        marketValue: goldMarketValue !== null ? Math.round(goldMarketValue * 100) / 100 : null,
+        profit: goldProfit !== null ? Math.round(goldProfit * 100) / 100 : null,
+        priceUpdatedAt: priceInfo.updatedAt,
+      },
     }));
   } catch (err) { next(err); }
 });

@@ -114,6 +114,7 @@ a:hover {
 .el-button {
   border-radius: 10px;
   transition: all 0.2s ease-out;
+  height: 30px;
 }
 .el-button:active {
   transform: scale(0.97);
@@ -235,12 +236,12 @@ a:hover {
     width: 90% !important;
   }
 
-  /* 最小触控区域 44px */
+  /* 最小触控区域 30px */
   .el-button {
-    min-height: 44px;
+    min-height: 30px;
   }
   .el-button--small {
-    min-height: 36px;
+    min-height: 30px;
   }
 
   /* 移动端表单：宽标签改顶部对齐 */

@@ -15,6 +15,10 @@
         <el-icon :size="22"><Camera /></el-icon>
         <span>记录</span>
       </router-link>
+      <router-link to="/golds" class="hub-item" active-class="hub-item--active">
+        <el-icon :size="22"><Coin /></el-icon>
+        <span>攒金</span>
+      </router-link>
       <router-link to="/year-goals" class="hub-item" active-class="hub-item--active">
         <el-icon :size="22"><Flag /></el-icon>
         <span>目标</span>

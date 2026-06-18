@@ -100,3 +100,25 @@ model FinanceAssetSnapshot {
 
   @@map("finance_asset_snapshot")
 }
+
+model FinanceGold {
+  id             BigInt   @id @default(autoincrement())
+  purchaseDate   DateTime @map("purchase_date") @db.Date
+  channel        String   @db.VarChar(100)
+  weightGrams    Decimal  @map("weight_grams") @db.Decimal(10, 4)
+  purchaseAmount Decimal  @map("purchase_amount") @db.Decimal(18, 2)
+  pricePerGram   Decimal  @map("price_per_gram") @db.Decimal(10, 2)
+  remark         String?  @db.VarChar(255)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("finance_gold")
+}
+
+model SystemConfig {
+  key       String   @id @db.VarChar(100)
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_config")
+}

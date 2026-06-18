@@ -11,6 +11,8 @@ const accountRoutes = require('./routes/account.routes');
 const snapshotRoutes = require('./routes/snapshot.routes');
 const optionRoutes = require('./routes/option.routes');
 const exportRoutes = require('./routes/export.routes');
+const goldRoutes = require('./routes/gold.routes');
+const configRoutes = require('./routes/config.routes');
 
 const app = express();
 
@@ -28,6 +30,8 @@ app.use('/api', accountRoutes);
 app.use('/api', snapshotRoutes);
 app.use('/api', optionRoutes);
 app.use('/api', exportRoutes);
+app.use('/api', goldRoutes);
+app.use('/api', configRoutes);
 
 // 健康检查
 app.get('/health', (_req, res) => {

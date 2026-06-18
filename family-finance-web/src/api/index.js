@@ -77,4 +77,16 @@ export const exportSnapshotsCsv = () => '/api/export/snapshots.csv'
 export const exportAccountsCsv = () => '/api/export/accounts.csv'
 export const exportAssetTypesCsv = () => '/api/export/asset-types.csv'
 
+// 攒金
+export const getGolds = () => request.get('/golds')
+export const getGoldsSummary = () => request.get('/golds/summary')
+export const createGold = (data) => request.post('/golds', data)
+export const updateGold = (id, data) => request.put(`/golds/${id}`, data)
+export const deleteGold = (id) => request.delete(`/golds/${id}`)
+export const fetchGoldPrice = () => request.post('/golds/fetch-price')
+
+// 系统配置
+export const getConfig = (key) => request.get(`/config/${key}`)
+export const setConfig = (key, value) => request.put(`/config/${key}`, { value })
+
 export default request
