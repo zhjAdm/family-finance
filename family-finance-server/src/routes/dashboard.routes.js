@@ -42,13 +42,14 @@ router.get('/dashboard', async (req, res, next) => {
     const targetYear = year ? parseInt(year, 10) : new Date().getFullYear();
     const ownerFilter = ownerId ? { ownerId: BigInt(ownerId) } : {};
 
-    // 1. 获取年度目标
-    const yearGoal = await prisma.financeYearGoal.findFirst({
+    // 1. 获取年度目标（所有人视角下合计）
+    const yearGoalAgg = await prisma.financeYearGoal.aggregate({
       where: { year: targetYear, ...ownerFilter },
+      _sum: { startAmount: true, targetAmount: true },
     });
 
-    const startAmount = Number(yearGoal?.startAmount || 0);
-    const targetAmount = Number(yearGoal?.targetAmount || 0);
+    const startAmount = Number(yearGoalAgg._sum.startAmount || 0);
+    const targetAmount = Number(yearGoalAgg._sum.targetAmount || 0);
 
     // 2. 获取每个账户的最新快照（限当年）
     const { filter: latestPerAccount, latestSnapshotDate } = await getLatestPerAccountFilter(ownerFilter, targetYear);

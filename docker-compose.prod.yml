@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ${ACR_REGISTRY}/${ACR_NAMESPACE}/family-finance-server:latest
+    image: crpi-hdgsb1q7sltq08im.cn-qingdao.personal.cr.aliyuncs.com/family_finance/family-finance-server:latest
     container_name: family_finance_server
     environment:
       DATABASE_URL: postgresql://finance:finance_password@postgres:5432/family_finance
@@ -25,7 +25,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ${ACR_REGISTRY}/${ACR_NAMESPACE}/family-finance-web:latest
+    image: crpi-hdgsb1q7sltq08im.cn-qingdao.personal.cr.aliyuncs.com/family_finance/family-finance-web:latest
     container_name: family_finance_web
     ports:
       - "8088:80"

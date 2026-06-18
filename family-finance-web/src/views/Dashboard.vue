@@ -464,7 +464,11 @@ function renderRiskChart() {
 
 function renderOwnerChart() {
   if (!ownerChartRef.value) return
-  if (!ownerChart) ownerChart = echarts.init(ownerChartRef.value)
+  if (ownerChart) {
+    ownerChart.dispose()
+    ownerChart = null
+  }
+  ownerChart = echarts.init(ownerChartRef.value)
   const data = dashboardData.value?.ownerDistribution || []
   const option = {
     tooltip: { trigger: 'item', ...glassTooltip, formatter: (p) => `${p.name}: ¥${Number(p.value).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${p.percent}%)` },
