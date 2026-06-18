@@ -30,12 +30,17 @@ jobs:
             -u ${{ secrets.ACR_USERNAME }} \
             -p ${{ secrets.ACR_PASSWORD }}
 
-      - name: Debug image name
+      - name: Check docker login
         run: |
-          echo "REGISTRY=${{ env.REGISTRY }}"
-          echo "NAMESPACE=${{ env.NAMESPACE }}"
-          echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-server"
-          echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-web"
+          docker info
+
+      - name: Test ACR push permission
+        run: |
+          TEST_IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-server:ci-test
+          docker pull hello-world
+          docker tag hello-world $TEST_IMAGE
+          docker push $TEST_IMAGE
+
       - name: Build & Push Backend
         run: |
           IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-server
