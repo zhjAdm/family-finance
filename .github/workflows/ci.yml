@@ -17,20 +17,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get version
-        run: |
-          BACKEND_VERSION=$(node -p "require('./family-finance-server/package.json').version")
-          FRONTEND_VERSION=$(node -p "require('./family-finance-web/package.json').version")
-          echo "BACKEND_VERSION=$BACKEND_VERSION" >> $GITHUB_ENV
-          echo "FRONTEND_VERSION=$FRONTEND_VERSION" >> $GITHUB_ENV
-
       - name: Login to ACR
         run: |
           docker login ${{ env.REGISTRY }} \
             -u ${{ secrets.ACR_USERNAME }} \
             -p ${{ secrets.ACR_PASSWORD }}
 
+      - name: Get versions
+        id: versions
+        run: |
+          BACKEND_VERSION=$(node -p "require('./family-finance-server/package.json').version")
+          FRONTEND_VERSION=$(node -p "require('./family-finance-web/package.json').version")
+          echo "BACKEND_VERSION=$BACKEND_VERSION" >> $GITHUB_ENV
+          echo "FRONTEND_VERSION=$FRONTEND_VERSION" >> $GITHUB_ENV
+          echo "backend_version=$BACKEND_VERSION" >> $GITHUB_OUTPUT
+          echo "frontend_version=$FRONTEND_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if versions exist in ACR
+        id: check_versions
+        run: |
+          BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-server
+          FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-web
+          if docker manifest inspect $BACKEND_IMAGE:${{ env.BACKEND_VERSION }} >/dev/null 2>&1; then
+            echo "backend_exists=true" >> $GITHUB_OUTPUT
+            echo "Backend ${{ env.BACKEND_VERSION }} already exists, will skip"
+          else
+            echo "backend_exists=false" >> $GITHUB_OUTPUT
+            echo "Backend ${{ env.BACKEND_VERSION }} not found, will build"
+          fi
+          if docker manifest inspect $FRONTEND_IMAGE:${{ env.FRONTEND_VERSION }} >/dev/null 2>&1; then
+            echo "frontend_exists=true" >> $GITHUB_OUTPUT
+            echo "Frontend ${{ env.FRONTEND_VERSION }} already exists, will skip"
+          else
+            echo "frontend_exists=false" >> $GITHUB_OUTPUT
+            echo "Frontend ${{ env.FRONTEND_VERSION }} not found, will build"
+          fi
+
       - name: Build & Push Backend
+        if: steps.check_versions.outputs.backend_exists == 'false'
         run: |
           IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-server
           docker build \
@@ -41,6 +65,7 @@ jobs:
           docker push $IMAGE:${{ env.BACKEND_VERSION }}
 
       - name: Build & Push Frontend
+        if: steps.check_versions.outputs.frontend_exists == 'false'
         run: |
           IMAGE=${{ env.REGISTRY }}/${{ env.NAMESPACE }}/family-finance-web
           docker build \
