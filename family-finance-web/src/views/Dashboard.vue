@@ -126,6 +126,12 @@
         </div>
       </div>
 
+      <!-- 分账户月度趋势 -->
+      <div class="chart-card glass-card account-trend-section">
+        <div class="chart-card-title">分账户月度趋势</div>
+        <div ref="accountTrendChartRef" class="chart-container"></div>
+      </div>
+
       <!-- 图表区域 -->
       <div class="charts-grid">
         <div class="chart-card glass-card">
@@ -176,11 +182,13 @@ const assetTypeChartRef = ref(null)
 const accountChartRef = ref(null)
 const riskChartRef = ref(null)
 const ownerChartRef = ref(null)
+const accountTrendChartRef = ref(null)
 let trendChart = null
 let assetTypeChart = null
 let accountChart = null
 let riskChart = null
 let ownerChart = null
+let accountTrendChart = null
 
 const selectedOwner = ref('')
 const isPersonal = ref(false)
@@ -273,6 +281,7 @@ async function loadDashboard() {
 
 function renderCharts() {
   renderTrendChart()
+  renderAccountTrendChart()
   renderAssetTypeChart()
   renderAccountChart()
   renderRiskChart()
@@ -367,6 +376,66 @@ function renderTrendChart() {
     series,
   }
   trendChart.setOption(option, true)
+}
+
+function renderAccountTrendChart() {
+  if (!accountTrendChartRef.value) return
+  if (!accountTrendChart) accountTrendChart = echarts.init(accountTrendChartRef.value)
+  const isMobile = window.innerWidth <= 768
+  const accountTrend = dashboardData.value?.accountTrend
+  const accounts = accountTrend?.accounts || []
+
+  const series = accounts.map((acc, i) => {
+    const color = softColors[i % softColors.length]
+    return {
+      name: acc.name,
+      type: 'line',
+      data: acc.data,
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: isMobile ? 3 : 4,
+      lineStyle: { width: 2, color },
+      itemStyle: { color, borderColor: '#fff', borderWidth: 1 },
+    }
+  })
+
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      ...glassTooltip,
+      formatter: (params) => {
+        let result = params[0].axisValue + '<br/>'
+        params.forEach(p => {
+          const val = Number(p.value).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          result += `${p.marker}${p.seriesName}: ¥${val}<br/>`
+        })
+        return result
+      }
+    },
+    legend: {
+      top: 0,
+      type: 'scroll',
+      textStyle: { color: '#86909C', fontSize: 12 },
+      itemGap: 16,
+    },
+    grid: { left: isMobile ? 40 : 60, right: isMobile ? 10 : 30, top: 36, bottom: 30 },
+    xAxis: {
+      type: 'category',
+      data: (accountTrend?.dates || []).map(d => parseInt(d.split('-')[1], 10) + '月'),
+      axisLabel: { color: '#86909C', fontSize: 11 },
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.3)' } },
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: '#86909C', formatter: (v) => (v / 10000).toFixed(2) + '万', fontSize: 11 },
+      splitLine: { lineStyle: { color: 'rgba(0,0,0,0.04)', type: 'dashed' } },
+      axisLine: { show: false },
+      axisTick: { show: false },
+    },
+    series,
+  }
+  accountTrendChart.setOption(option, true)
 }
 
 function renderAssetTypeChart() {
@@ -485,6 +554,7 @@ function renderOwnerChart() {
 
 function resizeCharts() {
   trendChart?.resize()
+  accountTrendChart?.resize()
   assetTypeChart?.resize()
   accountChart?.resize()
   riskChart?.resize()
@@ -501,6 +571,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   window.removeEventListener('resize', resizeCharts)
   trendChart?.dispose()
+  accountTrendChart?.dispose()
   assetTypeChart?.dispose()
   accountChart?.dispose()
   riskChart?.dispose()
@@ -697,6 +768,10 @@ onBeforeUnmount(() => {
 .chart-container {
   width: 100%;
   height: 320px;
+}
+
+.account-trend-section {
+  margin-bottom: 16px;
 }
 
 /* ========== 移动端适配 ========== */

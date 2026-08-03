@@ -189,6 +189,7 @@ router.get('/dashboard', async (req, res, next) => {
     const ownerRunning = {};
     const totalByMonth = {};
     const ownerByMonth = {};
+    const accountByMonth = {};
 
     months.forEach((month) => {
       if (monthMap[month]) {
@@ -201,6 +202,7 @@ router.get('/dashboard', async (req, res, next) => {
         });
       }
       totalByMonth[month] = Object.values(accountRunning).reduce((a, b) => a + b, 0);
+      accountByMonth[month] = { ...accountRunning };
       Object.entries(ownerRunning).forEach(([oid, accts]) => {
         if (!ownerByMonth[oid]) ownerByMonth[oid] = {};
         ownerByMonth[oid][month] = Object.values(accts).reduce((a, b) => a + b, 0);
@@ -228,6 +230,32 @@ router.get('/dashboard', async (req, res, next) => {
           data: months.map((m) => (ownerByMonth[oid] && ownerByMonth[oid][m]) || 0),
         };
       }),
+    };
+
+    // 分账户月度趋势
+    const trendAccountIds = [...new Set(
+      months.flatMap((m) => Object.keys(accountByMonth[m] || {}))
+    )];
+    const trendAccounts = trendAccountIds.length > 0
+      ? await prisma.financeAccount.findMany({
+          where: { id: { in: trendAccountIds.map(BigInt) } },
+          include: { owner: true },
+        })
+      : [];
+    const accountNameMap = {};
+    trendAccounts.forEach((a) => {
+      const ownerName = a.owner?.displayName || a.owner?.name || '';
+      accountNameMap[a.id.toString()] = ownerName ? `${ownerName} - ${a.name}` : a.name;
+    });
+    const accountTrend = {
+      dates: months.map((m) => `${m}-01`),
+      accounts: trendAccountIds
+        .map((id) => ({
+          id,
+          name: accountNameMap[id] || '未知',
+          data: months.map((m) => (accountByMonth[m] && accountByMonth[m][id]) || 0),
+        }))
+        .filter((acc) => acc.data.some((v) => v !== 0)),
     };
 
     // 9. 风险分布
@@ -316,6 +344,7 @@ router.get('/dashboard', async (req, res, next) => {
       ownerDistribution,
       trend,
       ownerTrend,
+      accountTrend,
       riskDistribution,
       gold: {
         totalWeight: goldTotalWeight,
