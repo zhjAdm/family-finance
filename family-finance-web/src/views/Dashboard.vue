@@ -128,14 +128,52 @@
 
       <!-- 分账户月度趋势 -->
       <div class="chart-card glass-card account-trend-section">
-        <div class="chart-card-title">分账户月度趋势</div>
-        <div ref="accountTrendChartRef" class="chart-container"></div>
+        <div class="chart-card-header">
+          <div class="chart-card-title">分账户月度趋势</div>
+          <div class="chart-header-controls">
+            <div class="chart-toggle">
+              <button :class="{ active: trendRange === 6 }" @click="trendRange = 6">近6个月</button>
+              <button :class="{ active: trendRange === 12 }" @click="trendRange = 12">近12个月</button>
+            </div>
+            <div class="chart-toggle">
+              <button :class="{ active: accountTrendView === 'chart' }" @click="accountTrendView = 'chart'">图表</button>
+              <button :class="{ active: accountTrendView === 'table' }" @click="accountTrendView = 'table'">表格</button>
+            </div>
+          </div>
+        </div>
+        <div v-show="accountTrendView === 'chart'" ref="accountTrendChartRef" class="chart-container"></div>
+        <el-table
+          v-if="accountTrendView === 'table'"
+          class="glass-table account-trend-table"
+          :data="accountTrendAccounts"
+          border
+          size="small"
+          max-height="420"
+          empty-text="暂无分账户趋势数据"
+        >
+          <el-table-column prop="name" label="账户" fixed min-width="160" />
+          <el-table-column
+            v-for="(d, i) in accountTrendDates"
+            :key="d"
+            :label="formatMonthKey(d)"
+            align="right"
+            min-width="84"
+          >
+            <template #default="{ row }">{{ formatTrendCell(row.data[i]) }}</template>
+          </el-table-column>
+        </el-table>
       </div>
 
       <!-- 图表区域 -->
       <div class="charts-grid">
         <div class="chart-card glass-card">
-          <div class="chart-card-title">资产趋势</div>
+          <div class="chart-card-header">
+            <div class="chart-card-title">资产趋势</div>
+            <div class="chart-toggle">
+              <button :class="{ active: trendRange === 6 }" @click="trendRange = 6">近6个月</button>
+              <button :class="{ active: trendRange === 12 }" @click="trendRange = 12">近12个月</button>
+            </div>
+          </div>
           <div ref="trendChartRef" class="chart-container"></div>
         </div>
         <div class="chart-card glass-card">
@@ -167,7 +205,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { getDashboard, getOwnerOptions } from '../api'
@@ -195,6 +233,31 @@ const isPersonal = ref(false)
 const ownerOptions = ref([])
 const filteredAssetTypeDist = ref([])
 const filteredRiskDist = ref([])
+
+// 趋势图时间范围：近6个月 / 近12个月
+const trendRange = ref(6)
+
+// 分账户月度趋势视图切换：chart | table
+const accountTrendView = ref('chart')
+const accountTrendAccounts = computed(() => {
+  const n = trendRange.value
+  return (dashboardData.value?.accountTrend?.accounts || []).map((a) => ({ ...a, data: (a.data || []).slice(-n) }))
+})
+const accountTrendDates = computed(() => {
+  const n = trendRange.value
+  return (dashboardData.value?.accountTrend?.dates || []).slice(-n)
+})
+
+watch(accountTrendView, (val) => {
+  if (val === 'chart') {
+    nextTick(() => accountTrendChart?.resize())
+  }
+})
+
+watch(trendRange, () => {
+  renderTrendChart()
+  renderAccountTrendChart()
+})
 
 function switchView(mode) {
   if (mode === 'personal' && !isPersonal.value) {
@@ -249,6 +312,17 @@ function formatDateShort(val) {
   return String(val).slice(0, 10).replace(/-/g, '.')
 }
 
+function formatMonthKey(dateStr) {
+  if (!dateStr) return ''
+  const [y, m] = String(dateStr).split('-')
+  return `${y.slice(2)}/${m}`
+}
+
+function formatTrendCell(val) {
+  if (val === null || val === undefined || Number(val) === 0) return '--'
+  return formatMoney(val)
+}
+
 function formatGoldDate(val) {
   if (!val) return '未更新'
   try {
@@ -301,7 +375,8 @@ function renderTrendChart() {
   if (!trendChartRef.value) return
   if (!trendChart) trendChart = echarts.init(trendChartRef.value)
   const isMobile = window.innerWidth <= 768
-  const data = dashboardData.value?.trend || []
+  const n = trendRange.value
+  const data = (dashboardData.value?.trend || []).slice(-n)
   const ownerTrend = dashboardData.value?.ownerTrend
 
   const series = [{
@@ -327,7 +402,7 @@ function renderTrendChart() {
       series.push({
         name: owner.name,
         type: 'line',
-        data: owner.data,
+        data: (owner.data || []).slice(-n),
         smooth: true,
         symbol: 'circle',
         symbolSize: 4,
@@ -358,10 +433,7 @@ function renderTrendChart() {
     grid: { left: isMobile ? 40 : 60, right: isMobile ? 10 : 30, top: 36, bottom: 30 },
     xAxis: {
       type: 'category',
-      data: data.map(d => {
-        const m = parseInt(d.snapshotDate.split('-')[1])
-        return m + '月'
-      }),
+      data: data.map(d => formatMonthKey(d.snapshotDate)),
       axisLabel: { color: '#86909C', fontSize: 11 },
       axisLine: { lineStyle: { color: 'rgba(255,255,255,0.3)' } },
       axisTick: { show: false },
@@ -382,8 +454,9 @@ function renderAccountTrendChart() {
   if (!accountTrendChartRef.value) return
   if (!accountTrendChart) accountTrendChart = echarts.init(accountTrendChartRef.value)
   const isMobile = window.innerWidth <= 768
+  const n = trendRange.value
   const accountTrend = dashboardData.value?.accountTrend
-  const accounts = accountTrend?.accounts || []
+  const accounts = (accountTrend?.accounts || []).map((acc) => ({ ...acc, data: (acc.data || []).slice(-n) }))
 
   const series = accounts.map((acc, i) => {
     const color = softColors[i % softColors.length]
@@ -421,7 +494,7 @@ function renderAccountTrendChart() {
     grid: { left: isMobile ? 40 : 60, right: isMobile ? 10 : 30, top: 36, bottom: 30 },
     xAxis: {
       type: 'category',
-      data: (accountTrend?.dates || []).map(d => parseInt(d.split('-')[1], 10) + '月'),
+      data: (accountTrend?.dates || []).slice(-n).map(formatMonthKey),
       axisLabel: { color: '#86909C', fontSize: 11 },
       axisLine: { lineStyle: { color: 'rgba(255,255,255,0.3)' } },
       axisTick: { show: false },
@@ -772,6 +845,53 @@ onBeforeUnmount(() => {
 
 .account-trend-section {
   margin-bottom: 16px;
+}
+.chart-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.chart-card-header .chart-card-title {
+  margin-bottom: 0;
+}
+.chart-header-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chart-toggle {
+  display: flex;
+  background: #F2F3F5;
+  border-radius: 8px;
+  padding: 2px;
+}
+.chart-toggle button {
+  border: none;
+  background: transparent;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #86909C;
+  cursor: pointer;
+  transition: all .2s ease;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.chart-toggle button:hover {
+  color: #4E5969;
+}
+.chart-toggle button.active {
+  background: #fff;
+  color: #1D2129;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  font-weight: 600;
+}
+.account-trend-table {
+  width: 100%;
 }
 
 /* ========== 移动端适配 ========== */

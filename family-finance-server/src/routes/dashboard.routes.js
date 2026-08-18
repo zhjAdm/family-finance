@@ -155,10 +155,13 @@ router.get('/dashboard', async (req, res, next) => {
         }));
     }
 
-    // 8. 资产趋势 + 按用户趋势（按自然月，每月取各账户截至月末的最新值）
+    // 8. 资产趋势 + 按用户趋势（近 12 个月滚动窗口，跨年，每月取各账户截至月末的最新值）
+    const now = new Date();
+    const windowEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0); // 当前月最后一天
+    const windowStart = new Date(now.getFullYear(), now.getMonth() - 11, 1); // 12 个月前第一天
     const allSnapshots = await prisma.financeAssetSnapshot.findMany({
       where: {
-        snapshotDate: { lte: new Date(`${targetYear}-12-31`) },
+        snapshotDate: { lte: windowEnd },
         account: { includeInTotal: true },
         assetType: { includeInTotal: true },
         ...ownerFilter,
@@ -166,6 +169,14 @@ router.get('/dashboard', async (req, res, next) => {
       orderBy: [{ snapshotDate: 'asc' }, { id: 'asc' }],
       select: { snapshotDate: true, accountId: true, ownerId: true, calculatedAmount: true },
     });
+
+    // 生成近 12 个月的月份键（含当月），跨年
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    const windowStartKey = months[0];
 
     // 按 YYYY-MM 分组
     const monthMap = {};
@@ -175,18 +186,21 @@ router.get('/dashboard', async (req, res, next) => {
       monthMap[key].push(s);
     });
 
-    // 生成月份（到当前月为止）
-    const now = new Date();
-    const maxMonth = targetYear < now.getFullYear() ? 12
-      : targetYear > now.getFullYear() ? 0
-      : now.getMonth() + 1;
-    const months = [];
-    for (let m = 1; m <= maxMonth; m++) {
-      months.push(`${targetYear}-${String(m).padStart(2, '0')}`);
-    }
-
     const accountRunning = {};
     const ownerRunning = {};
+
+    // 先累积窗口起始月份之前的快照，建立 carry-forward 基线
+    Object.entries(monthMap).forEach(([month, snaps]) => {
+      if (month >= windowStartKey) return;
+      snaps.forEach((s) => {
+        const aid = s.accountId.toString();
+        const oid = s.ownerId.toString();
+        accountRunning[aid] = Number(s.calculatedAmount || 0);
+        if (!ownerRunning[oid]) ownerRunning[oid] = {};
+        ownerRunning[oid][aid] = Number(s.calculatedAmount || 0);
+      });
+    });
+
     const totalByMonth = {};
     const ownerByMonth = {};
     const accountByMonth = {};
@@ -214,7 +228,7 @@ router.get('/dashboard', async (req, res, next) => {
       amount: String(totalByMonth[m] || 0),
     }));
 
-    const trendOwnerIds = [...new Set(allSnapshots.filter((s) => s.snapshotDate.getFullYear() === targetYear).map((s) => s.ownerId))];
+    const trendOwnerIds = [...new Set(allSnapshots.filter((s) => s.snapshotDate >= windowStart).map((s) => s.ownerId))];
     const trendOwners = trendOwnerIds.length > 0
       ? await prisma.financeOwner.findMany({ where: { id: { in: trendOwnerIds } } })
       : [];
