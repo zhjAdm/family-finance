@@ -1,0 +1,12 @@
+<view class="screen with-tabs">
+  <text class="page-title">配置中心</text>
+  <navigator class="card config-card" wx:for="{{entries}}" wx:key="key" url="{{item.url}}">
+    <view class="config-icon {{item.tone}}"><image src="/assets/icons/{{item.icon}}.svg" mode="aspectFit" /></view>
+    <view class="config-info">
+      <text class="config-label">{{item.title}}</text>
+      <text wx:if="{{item.meta}}" class="muted">{{item.meta}}</text>
+    </view>
+    <text class="config-arrow">›</text>
+  </navigator>
+  <button bindtap="logout">退出登录</button>
+</view>

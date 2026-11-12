@@ -1,0 +1,23 @@
+.record-header { margin-bottom: 16px; }
+.record-header .page-title { margin-bottom: 10px; }
+.record-controls { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.record-controls button { margin: 0; }
+.view-toggle { display: inline-flex; border-radius: 10px; padding: 2px; background: rgba(255, 255, 255, 0.45); }
+.view-toggle button { border: 0; background: transparent; }
+.view-toggle button.selected { color: #409eff; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); }
+.snapshot-card { padding: 14px 16px; background: rgba(255, 255, 255, 0.6); border: 1px solid #ebeef5; border-radius: 12px; box-shadow: none; }
+.snapshot-card.debt { border-left: 3px solid rgba(245, 108, 108, 0.5); }
+.record-main { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.snapshot-card .record-main { flex-direction: column; align-items: flex-start; }
+.record-content { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.record-title { font-weight: 600; color: #1d2129; }
+.record-icon { width: 32px; height: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: linear-gradient(135deg, #409eff, #6bcbff); }
+.record-icon image { width: 16px; height: 16px; }
+.debt .record-icon { background: linear-gradient(135deg, #f56c6c, #ff8a80); }
+.record-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.record-tag { padding: 2px 8px; color: #606266; background: #f5f7fa; border-radius: 6px; font-size: 12px; }
+.date-tag { color: #337ecc; background: rgba(64, 158, 255, 0.1); }
+.record-amount { color: #1d2129; font-size: 16px; font-weight: 700; white-space: nowrap; }
+.snapshot-card .record-amount { color: #67c23a; }
+.debt .record-amount { color: #f56c6c; }
+.record-actions { justify-content: flex-end; margin-bottom: 0; }

@@ -46,7 +46,7 @@ router.put('/owners/:id', async (req, res, next) => {
 });
 
 // 停用所有人
-router.patch('/owners/:id/disable', async (req, res, next) => {
+async function disable(req, res, next) {
   try {
     const id = BigInt(req.params.id);
     const owner = await prisma.financeOwner.update({
@@ -55,10 +55,11 @@ router.patch('/owners/:id/disable', async (req, res, next) => {
     });
     res.json(success(owner, '已停用'));
   } catch (err) { next(err); }
-});
+}
+router.route('/owners/:id/disable').patch(disable).put(disable);
 
 // 启用所有人
-router.patch('/owners/:id/enable', async (req, res, next) => {
+async function enable(req, res, next) {
   try {
     const id = BigInt(req.params.id);
     const owner = await prisma.financeOwner.update({
@@ -67,7 +68,8 @@ router.patch('/owners/:id/enable', async (req, res, next) => {
     });
     res.json(success(owner, '已启用'));
   } catch (err) { next(err); }
-});
+}
+router.route('/owners/:id/enable').patch(enable).put(enable);
 
 // 删除所有人（如果被引用则拒绝）
 router.delete('/owners/:id', async (req, res, next) => {

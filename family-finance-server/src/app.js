@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const errorHandler = require('./middleware/errorHandler');
+const { login, requireSession } = require('./wechat-auth');
 
 const dashboardRoutes = require('./routes/dashboard.routes');
 const yearGoalRoutes = require('./routes/yearGoal.routes');
@@ -21,17 +22,19 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 
-// 路由
-app.use('/api', dashboardRoutes);
-app.use('/api', yearGoalRoutes);
-app.use('/api', ownerRoutes);
-app.use('/api', assetTypeRoutes);
-app.use('/api', accountRoutes);
-app.use('/api', snapshotRoutes);
-app.use('/api', optionRoutes);
-app.use('/api', exportRoutes);
-app.use('/api', goldRoutes);
-app.use('/api', configRoutes);
+const financeApi = express.Router();
+financeApi.use(
+  dashboardRoutes, yearGoalRoutes, ownerRoutes, assetTypeRoutes, accountRoutes,
+  snapshotRoutes, optionRoutes, exportRoutes, goldRoutes, configRoutes,
+);
+
+app.use('/mini-api', (_req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+app.post('/mini-api/session', login);
+app.use('/mini-api', requireSession, financeApi);
+app.use('/api', financeApi);
 
 // 健康检查
 app.get('/health', (_req, res) => {

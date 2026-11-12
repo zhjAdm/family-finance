@@ -1,0 +1,14 @@
+<view class="screen">
+  <view class="card hero">
+    <text class="title">家庭财务</text>
+    <text class="muted">登录后查看家庭资产和记录</text>
+  </view>
+  <view class="card">
+    <button class="primary" bindtap="signIn" loading="{{loading}}" disabled="{{loading}}">微信登录</button>
+    <view class="error" wx:if="{{error}}">{{error}}</view>
+    <view wx:if="{{openid}}">
+      <text selectable="{{true}}">{{openid}}</text>
+      <button size="mini" bindtap="copyId">复制绑定编号</button>
+    </view>
+  </view>
+</view>

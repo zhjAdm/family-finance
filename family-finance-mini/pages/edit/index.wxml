@@ -1,0 +1,14 @@
+<view class="screen">
+  <view class="error" wx:if="{{error}}">{{error}}</view>
+  <button wx:if="{{error && !ready}}" bindtap="load">重试</button>
+  <view class="card" wx:if="{{ready}}">
+    <view class="field" wx:for="{{fields}}" wx:key="key">
+      <text>{{item.label}}{{item.required ? ' *' : ''}}</text>
+      <picker wx:if="{{item.type === 'date'}}" mode="date" value="{{item.value}}" data-key="{{item.key}}" bindchange="changeDate"><view>{{item.value || '选择日期'}}</view></picker>
+      <picker wx:elif="{{item.type === 'choice'}}" range="{{item.choices}}" range-key="label" value="{{item.selected}}" data-key="{{item.key}}" bindchange="pick"><view>{{item.value || (item.choices.length ? '请选择' : '暂无可选项')}}</view></picker>
+      <switch wx:elif="{{item.type === 'switch'}}" checked="{{item.value}}" data-key="{{item.key}}" bindchange="input" color="#409EFF" />
+      <input wx:else type="{{item.type === 'decimal' ? 'digit' : (item.type === 'integer' ? 'number' : 'text')}}" value="{{item.value}}" data-key="{{item.key}}" bindinput="input" maxlength="255" />
+    </view>
+    <button class="primary" bindtap="save" loading="{{saving}}" disabled="{{saving}}">保存</button>
+  </view>
+</view>

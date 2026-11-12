@@ -16,6 +16,10 @@ services:
     image: crpi-hdgsb1q7sltq08im.cn-qingdao.personal.cr.aliyuncs.com/family_finance/family-finance-server:latest
     container_name: family_finance_server
     environment:
+      WECHAT_APP_ID: ${WECHAT_APP_ID:-}
+      WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-}
+      WECHAT_SESSION_SECRET: ${WECHAT_SESSION_SECRET:-}
+      WECHAT_ALLOWED_OPENIDS: ${WECHAT_ALLOWED_OPENIDS:-}
       DATABASE_URL: postgresql://finance:Qucg6UXvcNf@postgres:5432/family_finance
       PORT: 3000
     ports:

@@ -71,7 +71,7 @@ router.put('/asset-types/:id', async (req, res, next) => {
 });
 
 // 停用资产类型
-router.patch('/asset-types/:id/disable', async (req, res, next) => {
+async function disable(req, res, next) {
   try {
     const id = BigInt(req.params.id);
     const assetType = await prisma.financeAssetType.update({
@@ -79,10 +79,11 @@ router.patch('/asset-types/:id/disable', async (req, res, next) => {
     });
     res.json(success(assetType, '已停用'));
   } catch (err) { next(err); }
-});
+}
+router.route('/asset-types/:id/disable').patch(disable).put(disable);
 
 // 启用资产类型
-router.patch('/asset-types/:id/enable', async (req, res, next) => {
+async function enable(req, res, next) {
   try {
     const id = BigInt(req.params.id);
     const assetType = await prisma.financeAssetType.update({
@@ -90,7 +91,8 @@ router.patch('/asset-types/:id/enable', async (req, res, next) => {
     });
     res.json(success(assetType, '已启用'));
   } catch (err) { next(err); }
-});
+}
+router.route('/asset-types/:id/enable').patch(enable).put(enable);
 
 // 删除资产类型（被引用则拒绝）
 router.delete('/asset-types/:id', async (req, res, next) => {

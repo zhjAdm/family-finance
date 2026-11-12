@@ -1,0 +1,54 @@
+<template name="amountRows">
+  <block wx:for="{{rows}}" wx:key="id">
+    <view class="row"><text>{{item.name}}</text><text>{{item.amount}}</text></view>
+    <view class="bar"><view style="width: {{item.width}}%;"></view></view>
+  </block>
+</template>
+
+<view class="screen with-tabs">
+  <text class="page-title">财务看板</text>
+  <view class="header-selectors">
+    <picker class="selector" mode="date" fields="year" value="{{year}}-01-01" bindchange="changeYear"><view>{{year}} 年 ›</view></picker>
+    <picker class="selector" wx:if="{{owners.length}}" range="{{owners}}" range-key="label" value="{{ownerIndex}}" bindchange="changeOwner">
+      <view>{{owners[ownerIndex].label}} ›</view>
+    </picker>
+  </view>
+  <view class="error" wx:if="{{error}}">{{error}} <text bindtap="load">重试</text></view>
+  <view class="card muted" wx:if="{{loading}}">正在加载</view>
+  <block wx:if="{{summary}}">
+    <navigator class="card hero" url="/pages/snapshots/index" open-type="switchTab">
+      <view class="net-asset-label">资产净值</view>
+      <text class="amount">{{summary.net}}</text>
+      <view class="muted">年度新增</view>
+      <text class="net-asset-side {{summary.increasing ? 'up' : 'down'}}">{{summary.increase}}</text>
+    </navigator>
+    <navigator wx:if="{{summary.gold.length}}" class="card gold-card" url="/pages/golds/index" open-type="switchTab">
+      <text class="title">攒金概览</text>
+      <view class="gold-grid">
+        <view class="gold-stat" wx:for="{{summary.gold}}" wx:key="name"><text>{{item.name}}</text><text>{{item.value}}</text></view>
+      </view>
+    </navigator>
+    <view class="card"><text class="title">总资产</text><text class="metric-value">{{summary.assets}}</text></view>
+    <view class="card"><text class="title">总负债</text><text class="metric-value">{{summary.debts}}</text></view>
+    <view class="card">
+      <text class="title">年度目标完成率</text>
+      <view class="bar"><view style="width: {{summary.progressWidth}}%;"></view></view>
+      <view class="row muted"><text>{{summary.progress}}%</text><text>最新快照：{{summary.latest}}</text></view>
+      <view class="row muted"><text>目标 {{summary.goal}}</text><text>剩余 {{summary.remaining}}</text></view>
+    </view>
+    <view class="card">
+      <view class="row"><text class="title">近 12 个月</text>
+        <picker range="{{trendOptions}}" value="{{trendIndex}}" bindchange="changeTrend"><view>{{trendOptions[trendIndex]}} ›</view></picker>
+      </view>
+      <template is="amountRows" data="{{rows: trendRows}}" />
+    </view>
+    <view class="card" wx:for="{{sections}}" wx:key="title">
+      <text class="title">{{item.title}}</text>
+      <template is="amountRows" data="{{rows: item.rows}}" />
+    </view>
+  </block>
+  <view class="actions">
+    <navigator url="/pages/snapshots/index" open-type="switchTab"><button size="mini" class="primary">查看快照</button></navigator>
+    <navigator url="/pages/edit/index?type=snapshots"><button size="mini">录入快照</button></navigator>
+  </view>
+</view>

@@ -1,0 +1,47 @@
+{
+  "pages": [
+    "pages/dashboard/index",
+    "pages/snapshots/index",
+    "pages/golds/index",
+    "pages/year-goals/index",
+    "pages/settings/index",
+    "pages/records/index",
+    "pages/edit/index",
+    "pages/exports/index",
+    "pages/login/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "家庭财务",
+    "navigationBarBackgroundColor": "#f0f4ff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f0f4ff"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#86909C",
+    "selectedColor": "#409EFF",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/dashboard/index",
+        "text": "看板"
+      },
+      {
+        "pagePath": "pages/snapshots/index",
+        "text": "记录"
+      },
+      {
+        "pagePath": "pages/golds/index",
+        "text": "攒金"
+      },
+      {
+        "pagePath": "pages/year-goals/index",
+        "text": "目标"
+      },
+      {
+        "pagePath": "pages/settings/index",
+        "text": "配置"
+      }
+    ]
+  }
+}

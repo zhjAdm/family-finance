@@ -1,0 +1,11 @@
+.header-selectors { display: flex; gap: 8px; margin-bottom: 16px; }
+.header-selectors .selector { flex: 1; }
+.net-asset-label { color: rgba(255, 255, 255, 0.9); }
+.net-asset-side { font-size: 18px; font-weight: 700; }
+.net-asset-side.up { color: #c6ffa8; }
+.net-asset-side.down { color: #ffd0a8; }
+.metric-value { color: #1d2129; font-size: 20px; font-weight: 700; }
+.gold-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.gold-stat { display: flex; flex-direction: column; gap: 4px; }
+.gold-stat text:first-child { color: #8d6e00; font-size: 12px; }
+.gold-stat text:last-child { font-size: 16px; font-weight: 700; }

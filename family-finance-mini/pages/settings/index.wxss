@@ -1,0 +1,10 @@
+.config-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 10px; }
+.config-icon { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; }
+.config-icon image { width: 22px; height: 22px; }
+.blue { background: linear-gradient(135deg, #409eff, #6bcbff); }
+.purple { background: linear-gradient(135deg, #7c6ff7, #a78bfa); }
+.green { background: linear-gradient(135deg, #67c23a, #95d475); }
+.amber { background: linear-gradient(135deg, #e6a23c, #f2c94c); }
+.config-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.config-label { color: #1d2129; font-weight: 600; font-size: 15px; }
+.config-arrow { color: #c9cdd4; font-size: 19px; }

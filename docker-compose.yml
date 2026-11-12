@@ -17,6 +17,10 @@ services:
     image: family-finance-server:1.0.0
     container_name: family_finance_server
     environment:
+      WECHAT_APP_ID: ${WECHAT_APP_ID:-}
+      WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-}
+      WECHAT_SESSION_SECRET: ${WECHAT_SESSION_SECRET:-}
+      WECHAT_ALLOWED_OPENIDS: ${WECHAT_ALLOWED_OPENIDS:-}
       DATABASE_URL: postgresql://finance:finance_password@postgres:5432/family_finance
       PORT: 3000
     ports:

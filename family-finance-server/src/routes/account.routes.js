@@ -82,7 +82,7 @@ router.put('/accounts/:id', async (req, res, next) => {
 });
 
 // 停用账户
-router.patch('/accounts/:id/disable', async (req, res, next) => {
+async function disable(req, res, next) {
   try {
     const id = BigInt(req.params.id);
     const account = await prisma.financeAccount.update({
@@ -90,10 +90,11 @@ router.patch('/accounts/:id/disable', async (req, res, next) => {
     });
     res.json(success(account, '已停用'));
   } catch (err) { next(err); }
-});
+}
+router.route('/accounts/:id/disable').patch(disable).put(disable);
 
 // 启用账户
-router.patch('/accounts/:id/enable', async (req, res, next) => {
+async function enable(req, res, next) {
   try {
     const id = BigInt(req.params.id);
     const account = await prisma.financeAccount.update({
@@ -101,7 +102,8 @@ router.patch('/accounts/:id/enable', async (req, res, next) => {
     });
     res.json(success(account, '已启用'));
   } catch (err) { next(err); }
-});
+}
+router.route('/accounts/:id/enable').patch(enable).put(enable);
 
 // 删除账户（被快照引用则拒绝）
 router.delete('/accounts/:id', async (req, res, next) => {

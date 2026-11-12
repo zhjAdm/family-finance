@@ -1,0 +1,8 @@
+<view class="screen">
+  <text class="page-title">数据导出</text>
+  <view class="card">
+    <view class="row"><text>资产快照</text><button size="mini" data-file="snapshots.csv" bindtap="exportCsv">导出 CSV</button></view>
+    <view class="row"><text>账户</text><button size="mini" data-file="accounts.csv" bindtap="exportCsv">导出 CSV</button></view>
+    <view class="row"><text>资产类型</text><button size="mini" data-file="asset-types.csv" bindtap="exportCsv">导出 CSV</button></view>
+  </view>
+</view>
