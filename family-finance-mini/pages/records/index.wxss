@@ -2,6 +2,16 @@
 .record-header .page-title { margin-bottom: 10px; }
 .record-controls { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .record-controls button { margin: 0; }
+.record-controls .record-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+}
+.record-icon-button image { width: 14px; height: 14px; }
 .view-toggle { display: inline-flex; border-radius: 10px; padding: 2px; background: rgba(255, 255, 255, 0.45); }
 .view-toggle button { border: 0; background: transparent; }
 .view-toggle button.selected { color: #409eff; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); }

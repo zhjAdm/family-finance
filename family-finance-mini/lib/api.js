@@ -32,7 +32,7 @@ function request(path, method = 'GET', data) {
           resolve(body.data);
           return;
         }
-        if (statusCode === 401 && path !== '/session' && token() === session) logout();
+        if (statusCode === 401 && (path !== '/session' || method !== 'POST') && token() === session) logout();
         reject(Object.assign(new Error((body && body.message) || '请求失败'), { data: body && body.data }));
       },
       fail() { reject(new Error('无法连接家庭财务服务')); },
@@ -40,14 +40,15 @@ function request(path, method = 'GET', data) {
   });
 }
 
-async function login() {
+async function login(inviteCode) {
   const code = await new Promise((resolve, reject) => {
     wx.login({
       success: result => result.code ? resolve(result.code) : reject(new Error('微信登录失败')),
       fail: () => reject(new Error('微信登录失败')),
     });
   });
-  const { token: session } = await request('/session', 'POST', { code });
+  const data = inviteCode ? { code, inviteCode } : { code };
+  const { token: session } = await request('/session', 'POST', data);
   wx.setStorageSync(storageKey, session);
 }
 

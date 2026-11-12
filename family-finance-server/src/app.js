@@ -14,6 +14,8 @@ const optionRoutes = require('./routes/option.routes');
 const exportRoutes = require('./routes/export.routes');
 const goldRoutes = require('./routes/gold.routes');
 const configRoutes = require('./routes/config.routes');
+const wechatFamilyRoutes = require('./routes/wechat-family.routes');
+const { success } = require('./utils/response');
 
 const app = express();
 
@@ -33,7 +35,12 @@ app.use('/mini-api', (_req, res, next) => {
   next();
 });
 app.post('/mini-api/session', login);
-app.use('/mini-api', requireSession, financeApi);
+app.use('/mini-api', requireSession);
+app.get('/mini-api/session', (req, res) => {
+  res.json(success({ canManageFamily: req.wechat.canManageFamily }));
+});
+app.use('/mini-api/family', wechatFamilyRoutes);
+app.use('/mini-api', financeApi);
 app.use('/api', financeApi);
 
 // 健康检查

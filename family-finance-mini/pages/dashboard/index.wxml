@@ -1,15 +1,19 @@
-<template name="amountRows">
-  <block wx:for="{{rows}}" wx:key="id">
-    <view class="row"><text>{{item.name}}</text><text>{{item.amount}}</text></view>
-    <view class="bar"><view style="width: {{item.width}}%;"></view></view>
-  </block>
+<template name="trendRange">
+  <view class="dashboard-toggle">
+    <button size="mini" class="{{trendRange === 6 ? 'active' : ''}}" data-range="6" bindtap="changeTrendRange">近6个月</button>
+    <button size="mini" class="{{trendRange === 12 ? 'active' : ''}}" data-range="12" bindtap="changeTrendRange">近12个月</button>
+  </view>
 </template>
 
 <view class="screen with-tabs">
   <text class="page-title">财务看板</text>
   <view class="header-selectors">
+    <view class="dashboard-toggle">
+      <button size="mini" class="{{!isPersonal ? 'active' : ''}}" data-mode="all" bindtap="switchView">所有</button>
+      <button size="mini" class="{{isPersonal ? 'active' : ''}}" data-mode="personal" bindtap="switchView" disabled="{{!owners.length}}">个人</button>
+    </view>
     <picker class="selector" mode="date" fields="year" value="{{year}}-01-01" bindchange="changeYear"><view>{{year}} 年 ›</view></picker>
-    <picker class="selector" wx:if="{{owners.length}}" range="{{owners}}" range-key="label" value="{{ownerIndex}}" bindchange="changeOwner">
+    <picker class="selector" wx:if="{{isPersonal && owners.length}}" range="{{owners}}" range-key="label" value="{{ownerIndex}}" bindchange="changeOwner">
       <view>{{owners[ownerIndex].label}} ›</view>
     </picker>
   </view>
@@ -37,18 +41,52 @@
       <view class="row muted"><text>目标 {{summary.goal}}</text><text>剩余 {{summary.remaining}}</text></view>
     </view>
     <view class="card">
-      <view class="row"><text class="title">近 12 个月</text>
-        <picker range="{{trendOptions}}" value="{{trendIndex}}" bindchange="changeTrend"><view>{{trendOptions[trendIndex]}} ›</view></picker>
+      <text class="title">分账户月度趋势</text>
+      <view class="actions">
+        <template is="trendRange" data="{{trendRange: trendRange}}" />
+        <view class="dashboard-toggle">
+          <button size="mini" class="{{accountTrendView === 'chart' ? 'active' : ''}}" data-view="chart" bindtap="changeAccountView">图表</button>
+          <button size="mini" class="{{accountTrendView === 'table' ? 'active' : ''}}" data-view="table" bindtap="changeAccountView">表格</button>
+        </view>
       </view>
-      <template is="amountRows" data="{{rows: trendRows}}" />
+      <view wx:if="{{!accountSeries.length}}" class="muted">暂无分账户趋势数据</view>
+      <finance-chart wx:elif="{{accountTrendView === 'chart'}}" chart="{{accountChart}}" />
+      <view wx:else class="trend-table-layout">
+        <view class="trend-table-fixed">
+          <view class="trend-table-row"><text>账户</text></view>
+          <view class="trend-table-row" wx:for="{{accountSeries}}" wx:key="id">
+            <text>{{item.name}}</text>
+          </view>
+          <view class="trend-table-row trend-table-total"><text>合计</text></view>
+        </view>
+        <scroll-view class="trend-table-scroll" scroll-x="{{true}}">
+          <view class="trend-table" style="width: {{(accountDates.length + 1) * 104}}px;">
+            <view class="trend-table-row">
+              <text wx:for="{{accountDates}}" wx:key="*this">{{item}}</text>
+              <text>最近两月差额</text>
+            </view>
+            <view class="trend-table-row" wx:for="{{accountSeries}}" wx:key="id">
+              <text wx:for="{{item.cells}}" wx:for-item="cell" wx:key="date">{{cell.value}}</text>
+              <text>{{item.difference}}</text>
+            </view>
+            <view class="trend-table-row trend-table-total">
+              <text wx:for="{{accountTotal.cells}}" wx:for-item="cell" wx:key="date">{{cell.value}}</text>
+              <text>{{accountTotal.difference}}</text>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+    <view class="card">
+      <text class="title">资产趋势</text>
+      <template is="trendRange" data="{{trendRange: trendRange}}" />
+      <finance-chart wx:if="{{assetChart.months.length}}" chart="{{assetChart}}" />
+      <view wx:else class="muted">暂无趋势数据</view>
     </view>
     <view class="card" wx:for="{{sections}}" wx:key="title">
       <text class="title">{{item.title}}</text>
-      <template is="amountRows" data="{{rows: item.rows}}" />
+      <finance-chart wx:if="{{item.chart.items.length}}" chart="{{item.chart}}" />
+      <view wx:else class="muted">暂无数据</view>
     </view>
   </block>
-  <view class="actions">
-    <navigator url="/pages/snapshots/index" open-type="switchTab"><button size="mini" class="primary">查看快照</button></navigator>
-    <navigator url="/pages/edit/index?type=snapshots"><button size="mini">录入快照</button></navigator>
-  </view>
 </view>

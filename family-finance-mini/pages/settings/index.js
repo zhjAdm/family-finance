@@ -3,6 +3,7 @@ const { selectTab } = require('../../lib/navigation');
 
 Page({
   data: {
+    canManageFamily: false,
     entries: [
       { key: 'owners', title: '所有人配置', icon: 'user', tone: 'blue', suffix: '人启用', url: '/pages/records/index?type=owners' },
       { key: 'accounts', title: '账户配置', icon: 'credit-card', tone: 'purple', suffix: '账户', url: '/pages/records/index?type=accounts' },
@@ -13,6 +14,9 @@ Page({
   async onShow() {
     if (!requireLogin()) return;
     selectTab(this, 'settings');
+    request('/session').then(session => this.setData({ canManageFamily: session.canManageFamily })).catch(() => {
+      this.setData({ canManageFamily: false });
+    });
     const entries = await Promise.all(this.data.entries.map(async item => {
       if (!item.suffix) return item;
       try {

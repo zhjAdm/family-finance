@@ -1,0 +1,33 @@
+<view class="screen">
+  <view wx:if="{{error}}" class="error">{{error}} <text wx:if="{{!ready}}" bindtap="load">重试</text></view>
+  <block wx:if="{{ready}}">
+    <view class="card">
+      <text class="title">邀请家人</text>
+      <view class="muted">邀请码 24 小时内有效，只能使用一次。</view>
+      <view class="actions">
+        <button size="mini" class="primary" bindtap="generate" disabled="{{busy}}">生成临时邀请码</button>
+        <button wx:if="{{invitation}}" size="mini" bindtap="copyInvite">复制邀请码</button>
+      </view>
+      <view wx:if="{{invitation}}">
+        <text class="title" selectable="{{true}}">{{invitation.code}}</text>
+        <text class="muted">有效期至 {{invitation.expiresAt}}</text>
+      </view>
+    </view>
+    <view class="card">
+      <text class="title">手动添加</text>
+      <view class="field"><input value="{{openid}}" bindinput="inputOpenid" maxlength="128" placeholder="粘贴家人发来的绑定编号" /></view>
+      <button size="mini" bindtap="addMember" disabled="{{busy}}">添加成员</button>
+    </view>
+    <view class="card">
+      <text class="title">已加入成员</text>
+      <view class="row" wx:for="{{configured}}" wx:key="openid">
+        <text class="member-openid" selectable="{{true}}">{{item.openid}}</text>
+        <text class="muted">{{item.owner ? '你' : '部署配置'}}</text>
+      </view>
+      <view class="row" wx:for="{{members}}" wx:key="id">
+        <text class="member-openid" selectable="{{true}}">{{item.openid}}</text>
+        <button size="mini" class="link danger" data-id="{{item.id}}" bindtap="removeMember" disabled="{{busy}}">移除</button>
+      </view>
+    </view>
+  </block>
+</view>

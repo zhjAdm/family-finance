@@ -1,14 +1,13 @@
 const { request, requireLogin, toast, confirm } = require('../../lib/api');
-const { resources } = require('../../lib/resources');
+const { resources, money } = require('../../lib/resources');
 
 Page({
   data: { fields: [], ready: false, saving: false, error: '' },
-  onLoad({ type, id, date }) {
+  onLoad({ type, id }) {
     if (!Object.prototype.hasOwnProperty.call(resources, type)) return wx.navigateBack();
     this.resource = resources[type];
     this.type = type;
     this.id = id;
-    this.date = date;
     wx.setNavigationBarTitle({ title: (id ? '编辑' : '新增') + this.resource.title });
     this.load();
   },
@@ -24,9 +23,9 @@ Page({
       if (!record) throw new Error('记录已删除');
       this.options = Object.fromEntries(sources.map((source, index) => [source, lists[index]]));
       this.values = { ...this.resource.defaults(), ...record };
-      if (!this.id && this.type === 'snapshots' && this.date) this.values.snapshotDate = this.date;
       this.renderFields();
-      this.setData({ ready: true });
+      this.setData({ ready: true, golds: this.type === 'golds' });
+      if (this.type === 'golds') this.updateGoldPrice();
     } catch (error) { this.setData({ error: error.message }); }
   },
   renderFields() {
@@ -52,7 +51,16 @@ Page({
       return { key, label, type, required, choices, selected, value: choices[selected].label };
     }) });
   },
-  input(e) { this.values[e.currentTarget.dataset.key] = e.detail.value; },
+  input(e) {
+    this.values[e.currentTarget.dataset.key] = e.detail.value;
+    if (this.type === 'golds') this.updateGoldPrice();
+  },
+  updateGoldPrice() {
+    const { weightGrams, purchaseAmount } = this.values;
+    const price = Number(weightGrams) > 0 && purchaseAmount ? Number(purchaseAmount) / Number(weightGrams) : null;
+    this.setData({ goldPrice: money(price) });
+  },
+  cancel() { if (!this.data.saving) wx.navigateBack(); },
   pick(e) {
     const key = e.currentTarget.dataset.key;
     const field = this.data.fields.find(item => item.key === key);
@@ -66,7 +74,7 @@ Page({
       }
       if (key === 'accountId') {
         const account = this.options.accounts.find(item => item.id === selected.value);
-        const asset = this.options['asset-types'].find(item => item.id === account.defaultAssetTypeId && item.enabled);
+        const asset = this.options['asset-types'].find(item => item.id === account?.defaultAssetTypeId && item.enabled);
         this.values.assetTypeId = asset?.id || null;
       }
     }

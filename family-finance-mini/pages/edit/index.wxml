@@ -9,6 +9,10 @@
       <switch wx:elif="{{item.type === 'switch'}}" checked="{{item.value}}" data-key="{{item.key}}" bindchange="input" color="#409EFF" />
       <input wx:else type="{{item.type === 'decimal' ? 'digit' : (item.type === 'integer' ? 'number' : 'text')}}" value="{{item.value}}" data-key="{{item.key}}" bindinput="input" maxlength="255" />
     </view>
-    <button class="primary" bindtap="save" loading="{{saving}}" disabled="{{saving}}">保存</button>
+    <view class="row" wx:if="{{golds}}"><text>克重单价</text><text>{{goldPrice}}</text></view>
+    <view class="actions">
+      <button bindtap="cancel" disabled="{{saving}}">取消</button>
+      <button class="primary" bindtap="save" loading="{{saving}}" disabled="{{saving}}">确定</button>
+    </view>
   </view>
 </view>

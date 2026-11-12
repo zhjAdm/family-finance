@@ -1,0 +1,25 @@
+<scroll-view wx:if="{{chart.type === 'line' && chart.legend.length}}" class="chart-line-legend" scroll-x="{{true}}">
+  <view class="chart-legend chart-legend-line">
+    <view wx:for="{{chart.legend}}" wx:key="key" class="chart-legend-item">
+      <view class="chart-legend-mark" style="background: {{item.color}};"></view><text>{{item.label}}</text>
+    </view>
+  </view>
+</scroll-view>
+<view class="chart-plot">
+  <canvas type="2d" class="finance-canvas" style="height: {{chart.height}}px;" bindtap="showValue"></canvas>
+  <view wx:if="{{tooltip}}" class="chart-tooltip" style="left: {{tooltip.left}}px; top: {{tooltip.top}}px; width: {{tooltip.width}}px;">
+    <text class="chart-tooltip-title" bindtap="closeTooltip">{{tooltip.title}}</text>
+    <scroll-view scroll-y="{{true}}" style="height: {{tooltip.bodyHeight}}px;">
+      <view wx:for="{{tooltip.items}}" wx:key="key" class="chart-tooltip-row" bindtap="closeTooltip">
+        <view class="chart-legend-mark" style="background: {{item.color}};"></view>
+        <text class="chart-tooltip-label">{{item.label}}</text>
+        <text class="chart-tooltip-value">{{item.value}}</text>
+      </view>
+    </scroll-view>
+  </view>
+</view>
+<view wx:if="{{chart.type !== 'line' && chart.legend.length}}" class="chart-legend chart-legend-bottom">
+  <view wx:for="{{chart.legend}}" wx:key="key" class="chart-legend-item">
+    <view class="chart-legend-mark" style="background: {{item.color}};"></view><text>{{item.label}}</text>
+  </view>
+</view>

@@ -8,6 +8,7 @@
     "pages/records/index",
     "pages/edit/index",
     "pages/exports/index",
+    "pages/family/index",
     "pages/login/index"
   ],
   "window": {

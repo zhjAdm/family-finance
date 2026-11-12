@@ -4,10 +4,14 @@
     <text class="muted">登录后查看家庭资产和记录</text>
   </view>
   <view class="card">
-    <button class="primary" bindtap="signIn" loading="{{loading}}" disabled="{{loading}}">微信登录</button>
+    <view wx:if="{{openid}}" class="field">
+      <text>家庭邀请码</text>
+      <input value="{{inviteCode}}" bindinput="inputInvite" maxlength="16" placeholder="输入家人发来的邀请码" />
+    </view>
+    <button class="primary" bindtap="signIn" loading="{{loading}}" disabled="{{loading}}">{{openid && inviteCode ? '加入家庭' : '微信登录'}}</button>
     <view class="error" wx:if="{{error}}">{{error}}</view>
-    <view wx:if="{{openid}}">
-      <text selectable="{{true}}">{{openid}}</text>
+    <view wx:if="{{openid}}" class="row">
+      <text class="muted" selectable="{{true}}">{{openid}}</text>
       <button size="mini" bindtap="copyId">复制绑定编号</button>
     </view>
   </view>

@@ -1,0 +1,15 @@
+.export-label { display: flex; align-items: center; gap: 10px; }
+.export-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+}
+.export-icon image { width: 28px; height: 28px; }
+.export-icon.asset { background: linear-gradient(135deg, #409eff, #6bcbff); }
+.export-icon.account { background: linear-gradient(135deg, #7c6ff7, #a78bfa); }
+.export-icon.type { background: linear-gradient(135deg, #67c23a, #95d475); }
+.export-button { display: inline-flex; align-items: center; gap: 4px; margin: 0; }
+.export-button image { width: 14px; height: 14px; }

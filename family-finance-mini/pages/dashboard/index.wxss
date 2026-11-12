@@ -9,3 +9,34 @@
 .gold-stat { display: flex; flex-direction: column; gap: 4px; }
 .gold-stat text:first-child { color: #8d6e00; font-size: 12px; }
 .gold-stat text:last-child { font-size: 16px; font-weight: 700; }
+.header-selectors { flex-wrap: wrap; }
+.dashboard-toggle { display: inline-flex; padding: 2px; border-radius: 10px; background: rgba(255, 255, 255, 0.45); }
+.dashboard-toggle button { margin: 0; border: 0; background: transparent; }
+.dashboard-toggle button.active { color: #409eff; background: #fff; }
+.trend-table-layout { display: flex; }
+.trend-table-fixed {
+  box-sizing: border-box;
+  width: 34%;
+  max-width: 140px;
+  flex-shrink: 0;
+  border-right: 1px solid #dcdfe6;
+}
+.trend-table-scroll { flex: 1; width: 0; min-width: 0; }
+.trend-table { display: inline-block; min-width: 100%; }
+.trend-table-row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border-bottom: 1px solid #ebeef5;
+}
+.trend-table-row text {
+  box-sizing: border-box;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trend-table-fixed text { width: 100%; }
+.trend-table text { flex: 0 0 104px; text-align: right; }
+.trend-table-total { background: rgba(64, 158, 255, 0.08); color: #1d2129; font-weight: 600; }

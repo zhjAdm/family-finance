@@ -1,5 +1,5 @@
 const { request, requireLogin, toast, confirm } = require('./api');
-const { resources, today, money } = require('./resources');
+const { resources, money } = require('./resources');
 
 const { selectTab } = require('./navigation');
 const { parseAssetTypes } = require('./asset-csv');
@@ -7,9 +7,9 @@ const { parseAssetTypes } = require('./asset-csv');
 const pageSize = 30;
 module.exports = function recordPage(tabType) {
   return {
-    data: { withTabs: !!tabType, title: '', goals: false, rows: [], count: 0, loading: true, busy: false, error: '', date: '', targetDate: today(),
+    data: { withTabs: !!tabType, title: '', goals: false, rows: [], count: 0, loading: true, busy: false, error: '',
       snapshots: false, golds: false, assetTypes: false, goldSummary: [], configOpen: false, config: '',
-      mode: 'true', snapshotModes: ['最新记录', '历史快照', '全部记录'], modeIndex: 0 },
+      mode: 'true', snapshotModes: ['最新记录', '历史快照'], modeIndex: 0 },
     onLoad(options) {
       const type = tabType || options.type;
       if (!Object.prototype.hasOwnProperty.call(resources, type)) return wx.navigateBack();
@@ -34,8 +34,8 @@ module.exports = function recordPage(tabType) {
       const seq = this.seq = (this.seq || 0) + 1;
       this.setData({ loading: true, error: '' });
       try {
-        const { snapshots, mode, date } = this.data;
-        const filter = date ? { snapshotDate: date } : (snapshots && mode ? { latest: mode } : undefined);
+        const { snapshots, mode } = this.data;
+        const filter = snapshots ? { latest: mode } : undefined;
         const [records, gold] = await Promise.all([
           request('/' + this.type, 'GET', filter),
           this.data.golds ? request('/golds/summary') : null,
@@ -69,11 +69,11 @@ module.exports = function recordPage(tabType) {
     onReachBottom() { if (this.rows) this.setData({ rows: this.rows.slice(0, this.data.rows.length + pageSize) }); },
     edit(e) {
       const id = e.currentTarget.dataset.id || '';
-      wx.navigateTo({ url: '/pages/edit/index?type=' + this.type + '&id=' + id + '&date=' + this.data.date });
+      wx.navigateTo({ url: '/pages/edit/index?type=' + this.type + '&id=' + id });
     },
     changeMode(e) {
       const modeIndex = Number(e.currentTarget.dataset.index);
-      this.setData({ modeIndex, mode: ['true', 'exclude', ''][modeIndex], date: '', rows: [] });
+      this.setData({ modeIndex, mode: ['true', 'exclude'][modeIndex], rows: [] });
       this.load();
     },
     importAssetTypes() {
@@ -102,9 +102,6 @@ module.exports = function recordPage(tabType) {
       } catch (error) { toast(error.message); }
       finally { this.setData({ busy: false }); }
     },
-    filterDate(e) { this.setData({ date: e.detail.value, rows: [] }); this.load(); },
-    clearDate() { this.setData({ date: '', rows: [] }); this.load(); },
-    setTargetDate(e) { this.setData({ targetDate: e.detail.value }); },
     async mutate(path, method, data, prompt) {
       if (this.data.busy) return;
       this.setData({ busy: true });
@@ -120,21 +117,21 @@ module.exports = function recordPage(tabType) {
       const { id, enabled } = e.currentTarget.dataset;
       return this.mutate('/' + this.type + '/' + id + (enabled ? '/disable' : '/enable'), 'PUT');
     },
-    copy() {
-      const targetDate = this.data.targetDate;
-      return this.mutate('/snapshots/copy-latest', 'POST', { targetDate }, '将最近一次的快照复制到 ' + targetDate + '？');
-    },
-    removeDate() {
-      const date = this.data.date;
-      return this.mutate('/snapshots/by-date/' + date, 'DELETE', undefined, '删除 ' + date + ' 的全部快照？');
-    },
     refreshPrice() { return this.mutate('/golds/fetch-price', 'POST'); },
-    openConfig() { this.setData({ configOpen: !this.data.configOpen, config: '' }); },
+    async openConfig() {
+      if (this.data.busy || this.data.configOpen) return;
+      this.setData({ busy: true });
+      try {
+        const config = await request('/config/gold_api_token');
+        this.setData({ configOpen: true, config: config || '' });
+      } catch (error) { toast(error.message); }
+      finally { this.setData({ busy: false }); }
+    },
+    closeConfig() { this.setData({ configOpen: false, config: '' }); },
     inputConfig(e) { this.setData({ config: e.detail.value }); },
     async saveConfig() {
       if (this.data.busy) return;
       const value = this.data.config.trim();
-      if (!value) return toast('请输入金价接口令牌');
       this.setData({ busy: true });
       try {
         await request('/config/gold_api_token', 'PUT', { value });

@@ -3,26 +3,30 @@
     <text class="page-title">{{title}}</text>
     <view class="record-controls">
       <view wx:if="{{snapshots}}" class="view-toggle">
-        <button wx:for="{{snapshotModes}}" wx:key="*this" size="mini" class="{{modeIndex === index && !date ? 'selected' : ''}}" data-index="{{index}}" bindtap="changeMode">{{item}}</button>
+        <button wx:for="{{snapshotModes}}" wx:key="*this" size="mini" class="{{modeIndex === index ? 'selected' : ''}}" data-index="{{index}}" bindtap="changeMode">{{item}}</button>
       </view>
-      <button size="mini" class="primary" bindtap="edit">{{goals ? '新增目标' : '新增记录'}}</button>
+      <button wx:if="{{assetTypes}}" size="mini" bindtap="importAssetTypes" disabled="{{busy}}">导入</button>
+      <button wx:if="{{golds}}" size="mini" class="record-icon-button" bindtap="refreshPrice" disabled="{{busy}}" aria-label="更新金价">
+        <image src="/assets/icons/refresh.svg" mode="aspectFit" />
+      </button>
+      <button wx:if="{{golds}}" size="mini" class="record-icon-button" bindtap="openConfig" disabled="{{busy}}" aria-label="攒金设置">
+        <image src="/assets/icons/setting-button.svg" mode="aspectFit" />
+      </button>
+      <button size="mini" class="primary" bindtap="edit">{{goals ? '新增目标' : ((snapshots || golds) ? '新增记录' : '新增')}}</button>
     </view>
-  </view>
-  <view class="card" wx:if="{{snapshots}}">
-    <view class="row"><picker mode="date" value="{{date || targetDate}}" bindchange="filterDate"><view>{{date || '按日期筛选'}} ›</view></picker>
-      <button wx:if="{{date}}" size="mini" bindtap="clearDate">清除</button></view>
-    <view class="row"><picker mode="date" value="{{targetDate}}" bindchange="setTargetDate"><view>复制到 {{targetDate}} ›</view></picker>
-      <button size="mini" bindtap="copy" disabled="{{busy}}">复制最近快照</button></view>
-    <button wx:if="{{date}}" class="danger" size="mini" bindtap="removeDate" disabled="{{busy}}">删除当日全部快照</button>
   </view>
   <view class="card gold-card" wx:if="{{golds}}">
     <text class="title">黄金持仓</text>
     <view class="row" wx:for="{{goldSummary}}" wx:key="name"><text>{{item.name}}</text><text>{{item.value}}</text></view>
-    <view class="actions"><button size="mini" bindtap="refreshPrice" disabled="{{busy}}">更新金价</button><button size="mini" bindtap="openConfig">设置金价接口</button></view>
-    <view class="field" wx:if="{{configOpen}}"><input password="{{true}}" value="{{config}}" bindinput="inputConfig" placeholder="金价接口令牌" />
-      <button size="mini" bindtap="saveConfig" disabled="{{busy}}">保存令牌</button></view>
   </view>
-  <view class="actions" wx:if="{{assetTypes}}"><button size="mini" bindtap="importAssetTypes" disabled="{{busy}}">从微信聊天导入 CSV</button></view>
+  <view class="card" wx:if="{{configOpen}}">
+    <text class="title">攒金设置</text>
+    <view class="field"><input password="{{true}}" value="{{config}}" bindinput="inputConfig" placeholder="金价接口令牌" /></view>
+    <view class="actions">
+      <button size="mini" bindtap="closeConfig" disabled="{{busy}}">取消</button>
+      <button size="mini" class="primary" bindtap="saveConfig" disabled="{{busy}}">保存</button>
+    </view>
+  </view>
   <view class="error" wx:if="{{error}}">{{error}} <text bindtap="load">重试</text></view>
   <view class="card muted" wx:if="{{loading}}">正在加载</view>
   <view class="card muted" wx:elif="{{!error && !count}}">暂无记录</view>

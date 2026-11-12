@@ -8,5 +8,13 @@
     </view>
     <text class="config-arrow">›</text>
   </navigator>
+  <navigator wx:if="{{canManageFamily}}" class="card config-card" url="/pages/family/index">
+    <view class="config-icon blue"><image src="/assets/icons/user.svg" mode="aspectFit" /></view>
+    <view class="config-info">
+      <text class="config-label">家庭成员</text>
+      <text class="muted">生成邀请码、添加或移除成员</text>
+    </view>
+    <text class="config-arrow">›</text>
+  </navigator>
   <button bindtap="logout">退出登录</button>
 </view>

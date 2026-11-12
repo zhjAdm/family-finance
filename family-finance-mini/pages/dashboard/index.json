@@ -1,1 +1,4 @@
-{ "enablePullDownRefresh": true }
+{
+  "enablePullDownRefresh": true,
+  "usingComponents": { "finance-chart": "/components/finance-chart/index" }
+}

@@ -1,8 +1,15 @@
 <view class="screen">
   <text class="page-title">数据导出</text>
   <view class="card">
-    <view class="row"><text>资产快照</text><button size="mini" data-file="snapshots.csv" bindtap="exportCsv">导出 CSV</button></view>
-    <view class="row"><text>账户</text><button size="mini" data-file="accounts.csv" bindtap="exportCsv">导出 CSV</button></view>
-    <view class="row"><text>资产类型</text><button size="mini" data-file="asset-types.csv" bindtap="exportCsv">导出 CSV</button></view>
+    <view class="row" wx:for="{{exports}}" wx:key="file">
+      <view class="export-label">
+        <view class="export-icon {{item.tone}}"><image src="/assets/icons/{{item.icon}}.svg" mode="aspectFit" /></view>
+        <text>{{item.title}}</text>
+      </view>
+      <button size="mini" class="primary export-button" data-file="{{item.file}}" bindtap="exportCsv">
+        <image src="/assets/icons/download.svg" mode="aspectFit" />
+        <text>导出 CSV</text>
+      </button>
+    </view>
   </view>
 </view>
