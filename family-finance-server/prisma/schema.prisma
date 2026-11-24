@@ -126,16 +126,8 @@ model SystemConfig {
 model WechatFamilyMember {
   id        String   @id @default(uuid()) @db.Uuid
   openid    String   @unique @db.VarChar(128)
-  joinedAt  DateTime @default(now()) @map("joined_at")
+  joinedAt   DateTime  @default(now()) @map("joined_at")
+  approvedAt DateTime? @map("approved_at")
 
   @@map("wechat_family_member")
-}
-
-model WechatFamilyInvite {
-  digest      String    @id @db.Char(64)
-  ownerOpenid String    @map("owner_openid") @db.VarChar(128)
-  expiresAt   DateTime  @map("expires_at")
-  usedAt      DateTime? @map("used_at")
-
-  @@map("wechat_family_invite")
 }

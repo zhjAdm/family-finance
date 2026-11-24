@@ -1,6 +1,6 @@
 const { createHmac, timingSafeEqual } = require('node:crypto');
 const prisma = require('./prisma');
-const { isOpenid, isInviteCode, redeemInvite } = require('./wechat-family');
+const { isOpenid, findOrRequest } = require('./wechat-family');
 const { success, error } = require('./utils/response');
 
 const sessionDuration = 7 * 24 * 60 * 60 * 1000;
@@ -41,7 +41,7 @@ function readToken(token, config) {
 async function login(req, res, next) {
   const config = getConfig();
   if (!config) return res.status(503).json(error('微信登录尚未配置', 503));
-  const { code, inviteCode } = req.body || {};
+  const { code } = req.body || {};
   if (typeof code !== 'string' || !code.trim() || code.length > 256) {
     return res.status(400).json(error('缺少有效的微信登录凭证', 400));
   }
@@ -65,13 +65,9 @@ async function login(req, res, next) {
   if (config.allowed.has(openid)) return res.json(success({ token: issueToken(openid, config) }));
 
   try {
-    let member = await prisma.wechatFamilyMember.findUnique({ where: { openid } });
-    if (!member && config.owner && isInviteCode(inviteCode)) {
-      member = await redeemInvite(inviteCode, config.owner, openid);
-    }
-    if (!member) {
-      const message = inviteCode ? '邀请码无效、已使用或已过期' : '请输入家庭邀请码，或复制绑定编号交给家庭成员管理者';
-      return res.status(403).json({ ...error(message, 403), data: { openid } });
+    const member = await findOrRequest(openid);
+    if (!member.approvedAt) {
+      return res.status(403).json(error('已提交加入申请，请等待家庭成员管理者批准', 403));
     }
     return res.json(success({ token: issueToken(openid, config, member.id) }));
   } catch (err) {
@@ -90,7 +86,7 @@ async function requireSession(req, res, next) {
     if (!config.allowed.has(claims.openid)) {
       if (typeof claims.membershipId !== 'string') return res.status(401).json(error('请重新登录', 401));
       const member = await prisma.wechatFamilyMember.findUnique({ where: { openid: claims.openid } });
-      if (member?.id !== claims.membershipId) return res.status(401).json(error('请重新登录', 401));
+      if (member?.id !== claims.membershipId || !member.approvedAt) return res.status(401).json(error('请重新登录', 401));
     }
     req.wechat = {
       openid: claims.openid,
